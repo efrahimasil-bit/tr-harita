@@ -2781,7 +2781,7 @@ def main():
             product_cols = {'pf': sales_columns.get('IZOTONIK_PF', 'PF IZOTONIK'),
                            'rakip': sales_columns.get('IZOTONIK_COMPETITOR', 'DIGER IZOTONIK')}
         
-      def calculate_city_performance(df, product_cols):
+    def calculate_city_performance(df, product_cols):
     """Şehir bazlı performans verilerini hesaplar"""
     if df.empty:
         return pd.DataFrame()
@@ -2796,7 +2796,7 @@ def main():
     city_perf['Pazar_Payi_%'] = (city_perf['PF_Satis'] / city_perf['Toplam_Pazar'] * 100).fillna(0)
     return city_perf
 
-def calculate_territory_performance(df, product_cols):
+    def calculate_territory_performance(df, product_cols):
     """Territory bazlı performans verilerini hesaplar"""
     if df.empty:
         return pd.DataFrame()
@@ -2813,7 +2813,7 @@ def calculate_territory_performance(df, product_cols):
     territory_perf['Goreceli_Pazar_Payi'] = (territory_perf['PF_Satis'] / territory_perf['Rakip_Satis']).replace([np.inf, -np.inf], 0).fillna(0)
     return territory_perf
 
-def calculate_time_series(df, product_cols):
+    def calculate_time_series(df, product_cols):
     """Zaman serisi verilerini hazırlar"""
     if df.empty:
         return pd.DataFrame()
@@ -4386,6 +4386,7 @@ def calculate_time_series(df, product_cols):
 
 if __name__ == "__main__":
     main()
+
 
 
 
