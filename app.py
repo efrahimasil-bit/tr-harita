@@ -403,15 +403,57 @@ CITY_NORMALIZE_CLEAN = {
 def safe_divide(a, b):
     return np.where(b != 0, a / b, 0)
 
-def get_product_columns(product):
-    if product == "TROCMETAM":
-        return {"pf": "TROCMETAM", "rakip": "DIGER TROCMETAM"}
-    elif product == "CORTIPOL":
-        return {"pf": "CORTIPOL", "rakip": "DIGER CORTIPOL"}
-    elif product == "DEKSAMETAZON":
-        return {"pf": "DEKSAMETAZON", "rakip": "DIGER DEKSAMETAZON"}
-    else:
-        return {"pf": "PF IZOTONIK", "rakip": "DIGER IZOTONIK"}
+def get_product_columns(product, df_columns=None):
+    """
+    Ürün kolonlarını akıllıca tespit et
+    Önce tam eşleşme ara, bulamazsa fuzzy matching yap
+    """
+    # Standart mapping
+    standard_mapping = {
+        "TROCMETAM": {"pf": "TROCMETAM", "rakip": "DIGER TROCMETAM"},
+        "CORTIPOL": {"pf": "CORTIPOL", "rakip": "DIGER CORTIPOL"},
+        "DEKSAMETAZON": {"pf": "DEKSAMETAZON", "rakip": "DIGER DEKSAMETAZON"},
+        "PF IZOTONIK": {"pf": "PF IZOTONIK", "rakip": "DIGER IZOTONIK"}
+    }
+    
+    base_cols = standard_mapping.get(product, {"pf": product, "rakip": f"DIGER {product}"})
+    
+    # Eğer df_columns verilmemişse standart döndür
+    if df_columns is None:
+        return base_cols
+    
+    # Kolon kontrolü ve fuzzy matching
+    result = {}
+    
+    for key, col_name in base_cols.items():
+        if col_name in df_columns:
+            result[key] = col_name
+        else:
+            # Fuzzy matching - case insensitive, strip whitespace
+            normalized_cols = {c.upper().strip(): c for c in df_columns}
+            search_key = col_name.upper().strip()
+            
+            if search_key in normalized_cols:
+                result[key] = normalized_cols[search_key]
+            else:
+                # Partial match
+                matches = [c for c in df_columns if search_key in c.upper() or c.upper() in search_key]
+                if matches:
+                    result[key] = matches[0]
+                else:
+                    # Son çare: içinde product adı geçen kolonları bul
+                    product_word = product.split()[0] if ' ' in product else product
+                    if key == 'pf':
+                        matches = [c for c in df_columns if product_word.upper() in c.upper() and 'DIGER' not in c.upper()]
+                    else:
+                        matches = [c for c in df_columns if product_word.upper() in c.upper() and 'DIGER' in c.upper()]
+                    
+                    if matches:
+                        result[key] = matches[0]
+                    else:
+                        result[key] = None
+    
+    return result
 
 def normalize_city_name_fixed(city_name):
     if pd.isna(city_name):
@@ -427,12 +469,46 @@ def normalize_city_name_fixed(city_name):
 # =============================================================================
 @st.cache_data
 def load_excel_data(file):
-    df = pd.read_excel(file)
-    df['DATE'] = pd.to_datetime(df['DATE'])
+    """Excel dosyasını yükle ve validate et"""
+    try:
+        df = pd.read_excel(file)
+    except Exception as e:
+        st.error(f"❌ Excel dosyası okunamadı: {str(e)}")
+        st.stop()
+    
+    # Gerekli kolonları kontrol et
+    required_base_cols = ['DATE', 'TERRITORIES', 'CITY', 'REGION', 'MANAGER']
+    missing_cols = [col for col in required_base_cols if col not in df.columns]
+    
+    if missing_cols:
+        st.error(f"""
+        ❌ **Eksik Kolonlar Tespit Edildi:**
+        
+        Gerekli kolonlar: `{', '.join(required_base_cols)}`
+        
+        Eksik olanlar: `{', '.join(missing_cols)}`
+        
+        **Mevcut kolonlar:**
+        ```
+        {', '.join(df.columns.tolist())}
+        ```
+        
+        💡 Lütfen Excel dosyanızın bu kolonları içerdiğinden emin olun.
+        """)
+        st.stop()
+    
+    # Tarih dönüşümü
+    try:
+        df['DATE'] = pd.to_datetime(df['DATE'])
+    except:
+        st.error("❌ 'DATE' kolonu tarih formatına dönüştürülemedi. Lütfen tarih formatını kontrol edin.")
+        st.stop()
+    
     df['YIL_AY'] = df['DATE'].dt.strftime('%Y-%m')
     df['AY'] = df['DATE'].dt.month
     df['YIL'] = df['DATE'].dt.year
     
+    # String kolonları normalize et
     df['TERRITORIES'] = df['TERRITORIES'].str.upper().str.strip()
     df['CITY'] = df['CITY'].str.strip()
     df['CITY_NORMALIZED'] = df['CITY'].apply(normalize_city_name_fixed)
@@ -546,7 +622,25 @@ def train_ml_models(df, forecast_periods=3):
 # ANALYSIS FUNCTIONS
 # =============================================================================
 def calculate_city_performance(df, product, date_filter=None):
-    cols = get_product_columns(product)
+    """Şehir bazlı performans - geliştirilmiş hata yönetimi"""
+    cols = get_product_columns(product, df.columns)
+    
+    # Kolon kontrolü
+    if cols['pf'] is None or cols['rakip'] is None:
+        st.error(f"""
+        ❌ **Ürün kolonları bulunamadı!**
+        
+        Aranan: `{product}` ve `DIGER {product}`
+        
+        **Mevcut ürün kolonları:**
+        ```
+        {', '.join([c for c in df.columns if any(p in c.upper() for p in ['TROC', 'CORTI', 'DEKSA', 'IZOTO', 'DIGER'])])}
+        ```
+        
+        💡 Lütfen doğru ürünü seçtiğinizden emin olun veya Excel dosyasındaki kolon isimlerini kontrol edin.
+        """)
+        st.stop()
+    
     if date_filter:
         df = df[(df['DATE'] >= date_filter[0]) & (df['DATE'] <= date_filter[1])]
     
