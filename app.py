@@ -2782,7 +2782,64 @@ def main():
                            'rakip': sales_columns.get('IZOTONIK_COMPETITOR', 'DIGER IZOTONIK')}
         
         # Şehir performansını hesapla
-        city_perf = calculate_city_performance(df_filtered, product_cols)
+        def calculate_city_performance(df, product_cols):
+    """Şehir bazlı performans verilerini hesaplar"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    # Şehir bazında gruplandır
+    city_perf = df.groupby(['CITY_NORMALIZED', 'REGION']).agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    city_perf.columns = ['City', 'Region', 'PF_Satis', 'Rakip_Satis']
+    
+    # Pazar payı ve toplam pazar hesapla
+    city_perf['Toplam_Pazar'] = city_perf['PF_Satis'] + city_perf['Rakip_Satis']
+    city_perf['Pazar_Payi_%'] = (city_perf['PF_Satis'] / city_perf['Toplam_Pazar'] * 100).fillna(0)
+    
+    return city_perf
+
+def calculate_territory_performance(df, product_cols):
+    """Territory bazlı performans verilerini hesaplar"""
+    if df.empty:
+        return pd.DataFrame()
+        
+    # Territory bazında gruplandır
+    territory_perf = df.groupby(['TERRITORIES', 'REGION']).agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    territory_perf.columns = ['Territory', 'Region', 'PF_Satis', 'Rakip_Satis']
+    
+    # Metrikleri hesapla
+    territory_perf['Toplam_Pazar'] = territory_perf['PF_Satis'] + territory_perf['Rakip_Satis']
+    territory_perf['Pazar_Payi_%'] = (territory_perf['PF_Satis'] / territory_perf['Toplam_Pazar'] * 100).fillna(0)
+    territory_perf['Agirlik_%'] = (territory_perf['PF_Satis'] / territory_perf['PF_Satis'].sum() * 100).fillna(0)
+    territory_perf['Goreceli_Pazar_Payi'] = (territory_perf['PF_Satis'] / territory_perf['Rakip_Satis']).replace([np.inf, -np.inf], 0).fillna(0)
+    
+    return territory_perf
+
+def calculate_time_series(df, product_cols):
+    """Zaman serisi verilerini hazırlar"""
+    if df.empty:
+        return pd.DataFrame()
+        
+    ts_data = df.groupby('DATE').agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    ts_data.columns = ['DATE', 'PF_Satis', 'Rakip_Satis']
+    ts_data = ts_data.sort_values('DATE')
+    
+    # Büyüme oranları
+    ts_data['PF_Buyume_%'] = ts_data['PF_Satis'].pct_change() * 100
+    ts_data['Rakip_Buyume_%'] = ts_data['Rakip_Satis'].pct_change() * 100
+    
+    return ts_data
     
     # ANA İÇERİK - TAB'LER
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
@@ -4341,6 +4398,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
