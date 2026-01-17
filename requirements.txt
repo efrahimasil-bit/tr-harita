@@ -1,9 +1,10 @@
 streamlit
 pandas
-numpy
+geopandas
 plotly
-scipy
-scikit-learn
-xgboost
-lightgbm
 openpyxl
+scikit-learn
+shapely
+reportlab==4.0.7
+matplotlib==3.8.2
+seaborn==0.13.0
