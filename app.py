@@ -4415,26 +4415,10 @@ def calculate_time_series(df, product_cols):
 # ANA UYGULAMA
 # =============================================================================
 
-def main():
-    # Başlık
-    st.markdown('<h1 class="main-header">🎯 PROFESYONEL TİCARİ PORTFÖY ANALİZ SİSTEMİ</h1>', unsafe_allow_html=True)
-    st.markdown('<div style="text-align: center; font-size: 1.3rem; color: #94a3b8; margin-bottom: 3rem; line-height: 1.8;">'
-                '🤖 AI Destekli Tahminleme • 🗺️ Interactive Haritalar • 📊 50+ Performans Metrik • 🎯 Otomatik İçgörü Üretimi<br>'
-                '🔮 Senaryo Analizleri • 📉 Risk Yönetimi • 💼 Stratejik Portföy Optimizasyonu'
-                '</div>', unsafe_allow_html=True)
-    
-    # SIDEBAR
-    with st.sidebar:
-        # ... (Sidebar kodların burada devam edecek) ...
-        # Kodun geri kalanını (Sidebar, Veri Yükleme, Tab'ler vb.) buraya yapıştır.
-        # DİKKAT: Buradan sonraki her satır en az 4 boşluk (bir tab) içeride olmalı.
-        pass # Bu satırı silip kendi kodunu devam ettir.
-
-# ... (main fonksiyonunun içindeki diğer kodların devamı) ...
-
 # En altta bu olmalı:
 if __name__ == "__main__":
     main()
+
 
 
 
