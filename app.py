@@ -38,14 +38,20 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.signal import savgol_filter
+import os
+
+# Statsmodels kütüphanesini kontrol et ve gerekirse kur
 try:
     import statsmodels.api as sm
 except ImportError:
-    import os
     os.system('pip install statsmodels')
-    import statsmodels.api as smfrom statsmodels.tsa.seasonal import seasonal_decompose
+    import statsmodels.api as sm
+
+# Diğer alt modülleri ayrı satırlarda import edin
+from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller, acf, pacf
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
 import geopandas as gpd
 from shapely.geometry import Point, Polygon, LineString
 import networkx as nx
@@ -4318,4 +4324,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
