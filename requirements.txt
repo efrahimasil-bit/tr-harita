@@ -18,5 +18,4 @@ shap
 dtw-python
 tslearn
 optuna
-tensorflow
 networkx
