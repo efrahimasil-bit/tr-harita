@@ -86,14 +86,25 @@ import lightgbm as lgb
 from catboost import CatBoostRegressor
 from prophet import Prophet
 # 88. satır civarındaki eski tensorflow importlarını silin ve bunu yapıştırın:
+# --- TensorFlow ve Derin Öğrenme Modülleri Güvenlik Bloğu ---
 try:
     import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras import layers, models, callbacks
 except ImportError:
     tf = None
-    st.error("TensorFlow yüklenemedi. Derin öğrenme tahminleri şu an devre dışı ancak diğer tüm özellikler çalışacaktır.")from tensorflow import keras
-from tensorflow.keras import layers, models, callbacks
+    st.warning("⚠️ TensorFlow kütüphanesi kurulamadı. Derin öğrenme (LSTM vb.) tahminleri devre dışı kalacaktır.")
+
+# --- Diğer Modüller (Bunlar TensorFlow'dan bağımsızdır, ayrı satırda olmalı) ---
+import optuna
+from optuna.samplers import TPESampler
+import shap
+import dtw
+from tslearn.clustering import TimeSeriesKMeans
+from tslearn.preprocessing import TimeSeriesScalerMeanVariance
+import warnings
+warnings.filterwarnings('ignore')
+
 import optuna
 from optuna.samplers import TPESampler
 import shap
@@ -4330,6 +4341,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
