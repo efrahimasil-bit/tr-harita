@@ -38,8 +38,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.signal import savgol_filter
-import statsmodels.api as sm
-from statsmodels.tsa.seasonal import seasonal_decompose
+try:
+    import statsmodels.api as sm
+except ImportError:
+    import os
+    os.system('pip install statsmodels')
+    import statsmodels.api as smfrom statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller, acf, pacf
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 import geopandas as gpd
@@ -4314,3 +4318,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
