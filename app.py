@@ -85,8 +85,14 @@ import xgboost as xgb
 import lightgbm as lgb
 from catboost import CatBoostRegressor
 from prophet import Prophet
-import tensorflow as tf
-from tensorflow import keras
+# 88. satır civarındaki eski tensorflow importlarını silin ve bunu yapıştırın:
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers, models, callbacks
+except ImportError:
+    tf = None
+    st.error("TensorFlow yüklenemedi. Derin öğrenme tahminleri şu an devre dışı ancak diğer tüm özellikler çalışacaktır.")from tensorflow import keras
 from tensorflow.keras import layers, models, callbacks
 import optuna
 from optuna.samplers import TPESampler
@@ -4324,5 +4330,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
