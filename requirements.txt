@@ -1,7 +1,7 @@
-streamlit>=1.35.0
-pandas>=2.2.0
-numpy<2.0.0
-plotly>=5.20.0
+streamlit
+pandas
+numpy
+plotly
 scikit-learn
 xgboost
 lightgbm
@@ -18,5 +18,4 @@ shap
 dtw-python
 tslearn
 optuna
-tensorflow>=2.16.0
 networkx
