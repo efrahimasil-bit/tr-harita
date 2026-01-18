@@ -12,7 +12,7 @@ Advanced Territory Performance, ML Forecasting, Turkey Mapping & Competitive Int
 - 📊 50+ Performans Metrik ve KPI Dashboard
 - 🎯 Otomatik Öngörü ve İçgörü Üretimi
 - 📉 Risk Analizi ve Erken Uyarı Sistemi
-- 💼 Yatırım Stratejisi ve ROI Hesaplama
+- 💼 Yatırım Stratejisi ve ROI Hesaplanması
 - 📱 Responsive ve Modern UI/UX
 - 📥 Otomatik Raporlama (Excel, PDF, PPT)
 
@@ -85,7 +85,7 @@ import xgboost as xgb
 import lightgbm as lgb
 from catboost import CatBoostRegressor
 from prophet import Prophet
-# 88. satır civarındaki eski tensorflow importlarını silin ve bunu yapıştırın:
+
 # --- TensorFlow ve Derin Öğrenme Modülleri Güvenlik Bloğu ---
 try:
     import tensorflow as tf
@@ -95,15 +95,7 @@ except ImportError:
     tf = None
     st.warning("⚠️ TensorFlow kütüphanesi kurulamadı. Derin öğrenme (LSTM vb.) tahminleri devre dışı kalacaktır.")
 
-# --- Diğer Modüller (Bunlar TensorFlow'dan bağımsızdır, ayrı satırda olmalı) ---
-import optuna
-from optuna.samplers import TPESampler
-import shap
-import dtw
-from tslearn.clustering import TimeSeriesKMeans
-from tslearn.preprocessing import TimeSeriesScalerMeanVariance
-
-
+# --- Diğer Modüller ---
 import optuna
 from optuna.samplers import TPESampler
 import shap
@@ -672,72 +664,67 @@ st.markdown("""
 
 # BÖLGE RENKLERİ (COĞRAFİ & MODERN)
 REGION_COLORS = {
-    "MARMARA": "#0EA5E9",              # Sky Blue - Deniz ve boğazlar
-    "BATI ANADOLU": "#14B8A6",         # Turkuaz-yeşil arası
-    "İÇ ANADOLU": "#F59E0B",           # Amber - Kuru bozkır
-    "GÜNEY DOĞU ANADOLU": "#E07A5F",   # Terracotta 
-    "KUZEY ANADOLU": "#059669",        # Emerald - Yemyeşil ormanlar
-    "AKDENİZ": "#3B82F6",              # Deep Blue - Akdeniz suları
-    "EGE": "#8B5CF6",                  # Purple - Lavanta tarlaları
-    "DOĞU ANADOLU": "#EF4444",         # Crimson - Dağlar ve volkanik topraklar
-    "KARADENİZ": "#10B981",            # Green - Yemyeşil yağmur ormanları
-    "DİĞER": "#64748B",                # Gray - Diğer bölgeler
+    "MARMARA": "#0EA5E9",
+    "BATI ANADOLU": "#14B8A6",
+    "İÇ ANADOLU": "#F59E0B",
+    "GÜNEY DOĞU ANADOLU": "#E07A5F",
+    "KUZEY ANADOLU": "#059669",
+    "AKDENİZ": "#3B82F6",
+    "EGE": "#8B5CF6",
+    "DOĞU ANADOLU": "#EF4444",
+    "KARADENİZ": "#10B981",
+    "DİĞER": "#64748B",
 }
 
 # PERFORMANS RENKLERİ
 PERFORMANCE_COLORS = {
-    # Performans Seviyeleri
-    "excellent": "#10B981",      # Emerald Green
-    "good": "#22C55E",           # Green
-    "average": "#F59E0B",        # Amber
-    "poor": "#EF4444",           # Red
-    "critical": "#991B1B",       # Dark Red
-    
-    # Trend Renkleri
-    "positive": "#10B981",       # Green
-    "negative": "#EF4444",       # Red
-    "neutral": "#6B7280",        # Gray
-    "warning": "#F59E0B",        # Amber
-    
-    # Stratejik Renkler
-    "growth": "#8B5CF6",         # Purple
-    "stable": "#3B82F6",         # Blue
-    "decline": "#F59E0B",        # Amber
-    "risk": "#EF4444",           # Red
+    "excellent": "#10B981",
+    "good": "#22C55E",
+    "average": "#F59E0B",
+    "poor": "#EF4444",
+    "critical": "#991B1B",
+    "positive": "#10B981",
+    "negative": "#EF4444",
+    "neutral": "#6B7280",
+    "warning": "#F59E0B",
+    "growth": "#8B5CF6",
+    "stable": "#3B82F6",
+    "decline": "#F59E0B",
+    "risk": "#EF4444",
 }
 
 # BCG MATRIX RENKLERİ
 BCG_COLORS = {
-    "⭐ STAR": "#F59E0B",         # Gold - Yüksek büyüme, yüksek pay
-    "🐄 CASH COW": "#10B981",    # Green - Düşük büyüme, yüksek pay
-    "❓ QUESTION MARK": "#3B82F6", # Blue - Yüksek büyüme, düşük pay
-    "🐶 DOG": "#64748B",         # Gray - Düşük büyüme, düşük pay
+    "⭐ STAR": "#F59E0B",
+    "🐄 CASH COW": "#10B981",
+    "❓ QUESTION MARK": "#3B82F6",
+    "🐶 DOG": "#64748B",
 }
 
 # YATIRIM STRATEJİSİ RENKLERİ
 STRATEGY_COLORS = {
-    "🚀 AGRESİF BÜYÜME": "#EF4444",      # Red - Agresif yatırım
-    "📈 HIZLANDIRILMIŞ": "#F59E0B",      # Orange - Orta seviye yatırım
-    "🛡️ KORUMA": "#10B981",              # Green - Koruma stratejisi
-    "💎 POTANSİYEL": "#8B5CF6",           # Purple - Potansiyel gelişim
-    "👁️ İZLEME": "#64748B",              # Gray - Pasif izleme
-    "🔄 YENİDEN YAPILANMA": "#EC4899",   # Pink - Yeniden yapılanma
+    "🚀 AGRESİF BÜYÜME": "#EF4444",
+    "📈 HIZLANDIRILMIŞ": "#F59E0B",
+    "🛡️ KORUMA": "#10B981",
+    "💎 POTANSİYEL": "#8B5CF6",
+    "👁️ İZLEME": "#64748B",
+    "🔄 YENİDEN YAPILANMA": "#EC4899",
 }
 
 # SEZONLUK RENKLER (Aylara göre)
 SEASONAL_COLORS = {
-    1: "#3B82F6",   # Ocak - Kış mavisi
-    2: "#8B5CF6",   # Şubat - Mor
-    3: "#10B981",   # Mart - Yeşil (bahar)
-    4: "#22C55E",   # Nisan - Açık yeşil
-    5: "#84CC16",   # Mayıs - Çim yeşili
-    6: "#F59E0B",   # Haziran - Yaz altını
-    7: "#F97316",   # Temmuz - Turuncu
-    8: "#EF4444",   # Ağustos - Kırmızı (sıcak)
-    9: "#EC4899",   # Eylül - Pembe
-    10: "#8B5CF6",  # Ekim - Mor (sonbahar)
-    11: "#6366F1",  # Kasım - İndigo
-    12: "#0EA5E9",  # Aralık - Kış mavisi
+    1: "#3B82F6",   # Ocak
+    2: "#8B5CF6",   # Şubat
+    3: "#10B981",   # Mart
+    4: "#22C55E",   # Nisan
+    5: "#84CC16",   # Mayıs
+    6: "#F59E0B",   # Haziran
+    7: "#F97316",   # Temmuz
+    8: "#EF4444",   # Ağustos
+    9: "#EC4899",   # Eylül
+    10: "#8B5CF6",  # Ekim
+    11: "#6366F1",  # Kasım
+    12: "#0EA5E9",  # Aralık
 }
 
 # GRADIENT SCALES
@@ -836,6 +823,68 @@ TURKEY_CITIES = {
     "YOZGAT": {"region": "İÇ ANADOLU", "lat": 39.8200, "lon": 34.8044},
     "ZONGULDAK": {"region": "KARADENİZ", "lat": 41.4564, "lon": 31.7987}
 }
+
+# =============================================================================
+# TEMEL ANALİZ FONKSİYONLARI
+# =============================================================================
+
+def calculate_city_performance(df, product_cols):
+    """Şehir bazlı performans verilerini hesaplar"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    if 'CITY_NORMALIZED' not in df.columns or 'REGION' not in df.columns:
+        return pd.DataFrame()
+    
+    city_perf = df.groupby(['CITY_NORMALIZED', 'REGION']).agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    city_perf.columns = ['City', 'Region', 'PF_Satis', 'Rakip_Satis']
+    city_perf['Toplam_Pazar'] = city_perf['PF_Satis'] + city_perf['Rakip_Satis']
+    city_perf['Pazar_Payi_%'] = (city_perf['PF_Satis'] / city_perf['Toplam_Pazar'] * 100).fillna(0)
+    return city_perf
+
+def calculate_territory_performance(df, product_cols):
+    """Territory bazlı performans verilerini hesaplar"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    if 'TERRITORIES' not in df.columns or 'REGION' not in df.columns:
+        return pd.DataFrame()
+        
+    territory_perf = df.groupby(['TERRITORIES', 'REGION']).agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    territory_perf.columns = ['Territory', 'Region', 'PF_Satis', 'Rakip_Satis']
+    territory_perf['Toplam_Pazar'] = territory_perf['PF_Satis'] + territory_perf['Rakip_Satis']
+    territory_perf['Pazar_Payi_%'] = (territory_perf['PF_Satis'] / territory_perf['Toplam_Pazar'] * 100).fillna(0)
+    territory_perf['Agirlik_%'] = (territory_perf['PF_Satis'] / territory_perf['PF_Satis'].sum() * 100).fillna(0)
+    territory_perf['Goreceli_Pazar_Payi'] = (territory_perf['PF_Satis'] / territory_perf['Rakip_Satis']).replace([np.inf, -np.inf], 0).fillna(0)
+    return territory_perf
+
+def calculate_time_series(df, product_cols):
+    """Zaman serisi verilerini hazırlar"""
+    if df.empty:
+        return pd.DataFrame()
+        
+    ts_data = df.groupby('DATE').agg({
+        product_cols['pf']: 'sum',
+        product_cols['rakip']: 'sum'
+    }).reset_index()
+    
+    ts_data.columns = ['DATE', 'PF_Satis', 'Rakip_Satis']
+    ts_data = ts_data.sort_values('DATE')
+    if len(ts_data) > 1:
+        ts_data['PF_Buyume_%'] = ts_data['PF_Satis'].pct_change() * 100
+        ts_data['Rakip_Buyume_%'] = ts_data['Rakip_Satis'].pct_change() * 100
+    else:
+        ts_data['PF_Buyume_%'] = 0
+        ts_data['Rakip_Buyume_%'] = 0
+    return ts_data
 
 # =============================================================================
 # İLERİ SEVİYE YARDIMCI FONKSİYONLAR
@@ -1503,57 +1552,6 @@ class AdvancedMapVisualizer:
         )
         
         return fig
-    
-    @staticmethod
-    def create_3d_surface_map(city_data: pd.DataFrame) -> go.Figure:
-        """3D yüzey haritası oluştur"""
-        # Şehir koordinatlarını ve satışları hazırla
-        points = []
-        for _, row in city_data.iterrows():
-            city = row['City']
-            if city in TURKEY_CITIES:
-                points.append({
-                    'x': TURKEY_CITIES[city]['lon'],
-                    'y': TURKEY_CITIES[city]['lat'],
-                    'z': row['PF_Satis']
-                })
-        
-        if len(points) < 10:
-            return None
-        
-        df_points = pd.DataFrame(points)
-        
-        # 3D surface plot
-        fig = go.Figure(data=[
-            go.Mesh3d(
-                x=df_points['x'],
-                y=df_points['y'],
-                z=df_points['z'],
-                colorscale='Viridis',
-                intensity=df_points['z'],
-                opacity=0.8,
-                name='Satış Dağılımı'
-            )
-        ])
-        
-        fig.update_layout(
-            title='<b>3D Satış Dağılım Haritası</b>',
-            scene=dict(
-                xaxis_title='Boylam',
-                yaxis_title='Enlem',
-                zaxis_title='PF Satış',
-                bgcolor='rgba(0,0,0,0)',
-                camera=dict(
-                    eye=dict(x=1.5, y=1.5, z=1.5)
-                )
-            ),
-            height=700,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#e2e8f0')
-        )
-        
-        return fig
 
 # =============================================================================
 # İLERİ SEVİYE ML VE AI FONKSİYONLARI
@@ -2078,71 +2076,6 @@ class TimeSeriesAnalyzer:
             metrics['is_stationary'] = False
         
         return metrics
-    
-    @staticmethod
-    def detect_patterns(df: pd.DataFrame, target_col: str):
-        """Zaman serisi pattern'lerini tespit et"""
-        series = df[target_col].fillna(method='ffill').values
-        
-        patterns = {
-            'trend': None,
-            'seasonality': None,
-            'cyclicality': None,
-            'anomalies': [],
-            'breakpoints': []
-        }
-        
-        # Trend analizi
-        try:
-            # Hodrick-Prescott filtresi
-            cycle, trend = sm.tsa.filters.hpfilter(series, lamb=1600)
-            patterns['trend'] = {
-                'direction': 'up' if trend[-1] > trend[0] else 'down',
-                'strength': np.corrcoef(np.arange(len(trend)), trend)[0, 1] ** 2
-            }
-        except:
-            pass
-        
-        # Anomali tespiti
-        try:
-            # Isolation Forest
-            iso_forest = IsolationForest(contamination=0.1, random_state=42)
-            anomalies = iso_forest.fit_predict(series.reshape(-1, 1))
-            anomaly_indices = np.where(anomalies == -1)[0]
-            
-            for idx in anomaly_indices:
-                if idx < len(df):
-                    patterns['anomalies'].append({
-                        'date': df.iloc[idx]['DATE'] if 'DATE' in df.columns else idx,
-                        'value': series[idx],
-                        'type': 'high' if series[idx] > np.median(series) else 'low'
-                    })
-        except:
-            pass
-        
-        # Kırılma noktaları
-        try:
-            if len(series) > 20:
-                # Chow testi benzeri basit kırılma tespiti
-                n = len(series)
-                potential_breaks = []
-                
-                for i in range(10, n-10):
-                    before = series[:i]
-                    after = series[i:]
-                    
-                    mean_before = np.mean(before)
-                    mean_after = np.mean(after)
-                    
-                    # Basit fark testi
-                    if abs(mean_after - mean_before) > 2 * np.std(series):
-                        potential_breaks.append(i)
-                
-                patterns['breakpoints'] = potential_breaks
-        except:
-            pass
-        
-        return patterns
 
 # =============================================================================
 # GELİŞMİŞ ANALİZ FONKSİYONLARI
@@ -2364,124 +2297,6 @@ class AdvancedAnalytics:
 
 class AdvancedVisualizations:
     """Gelişmiş görselleştirme sınıfı"""
-    
-    @staticmethod
-    def create_advanced_dashboard(metrics_dict):
-        """Advanced metrik dashboard'u oluştur"""
-        fig = make_subplots(
-            rows=2, cols=3,
-            subplot_titles=(
-                '📈 PF Satış Trendi',
-                '🏆 Bölge Performansı',
-                '📊 Pazar Payı Dağılımı',
-                '📉 Büyüme Oranları',
-                '🎯 BCG Matrix',
-                '📅 Mevsimsellik Analizi'
-            ),
-            specs=[
-                [{'type': 'scatter'}, {'type': 'bar'}, {'type': 'pie'}],
-                [{'type': 'bar'}, {'type': 'scatter'}, {'type': 'heatmap'}]
-            ],
-            vertical_spacing=0.15,
-            horizontal_spacing=0.1
-        )
-        
-        # Satış trendi
-        if 'sales_trend' in metrics_dict:
-            fig.add_trace(
-                go.Scatter(
-                    x=metrics_dict['sales_trend']['dates'],
-                    y=metrics_dict['sales_trend']['values'],
-                    mode='lines+markers',
-                    name='PF Satış',
-                    line=dict(color=PERFORMANCE_COLORS['positive'], width=3),
-                    marker=dict(size=8, color='white')
-                ),
-                row=1, col=1
-            )
-        
-        # Bölge performansı
-        if 'region_performance' in metrics_dict:
-            fig.add_trace(
-                go.Bar(
-                    x=metrics_dict['region_performance']['regions'],
-                    y=metrics_dict['region_performance']['sales'],
-                    name='Bölge Satış',
-                    marker_color=list(REGION_COLORS.values())[:len(metrics_dict['region_performance']['regions'])]
-                ),
-                row=1, col=2
-            )
-        
-        # Pazar payı dağılımı
-        if 'market_share' in metrics_dict:
-            fig.add_trace(
-                go.Pie(
-                    labels=['PF', 'Rakip'],
-                    values=[metrics_dict['market_share']['pf'], metrics_dict['market_share']['competitor']],
-                    name='Pazar Payı',
-                    marker_colors=[PERFORMANCE_COLORS['positive'], PERFORMANCE_COLORS['negative']],
-                    hole=0.4
-                ),
-                row=1, col=3
-            )
-        
-        # Büyüme oranları
-        if 'growth_rates' in metrics_dict:
-            fig.add_trace(
-                go.Bar(
-                    x=['PF Büyüme', 'Rakip Büyüme'],
-                    y=[metrics_dict['growth_rates']['pf'], metrics_dict['growth_rates']['competitor']],
-                    name='Büyüme Oranları',
-                    marker_color=[PERFORMANCE_COLORS['positive'], PERFORMANCE_COLORS['negative']]
-                ),
-                row=2, col=1
-            )
-        
-        # BCG Matrix
-        if 'bcg_data' in metrics_dict:
-            fig.add_trace(
-                go.Scatter(
-                    x=metrics_dict['bcg_data']['relative_share'],
-                    y=metrics_dict['bcg_data']['growth'],
-                    mode='markers',
-                    name='BCG Matrix',
-                    marker=dict(
-                        size=metrics_dict['bcg_data']['size'],
-                        color=metrics_dict['bcg_data']['color'],
-                        opacity=0.7
-                    ),
-                    text=metrics_dict['bcg_data']['labels']
-                ),
-                row=2, col=2
-            )
-        
-        # Mevsimsellik heatmap
-        if 'seasonality' in metrics_dict:
-            fig.add_trace(
-                go.Heatmap(
-                    z=metrics_dict['seasonality']['matrix'],
-                    x=metrics_dict['seasonality']['months'],
-                    y=metrics_dict['seasonality']['years'],
-                    colorscale='Viridis',
-                    name='Mevsimsellik'
-                ),
-                row=2, col=3
-            )
-        
-        fig.update_layout(
-            height=900,
-            showlegend=False,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#e2e8f0'),
-            title=dict(
-                text='<b>📊 Advanced Ticari Performans Dashboard</b>',
-                x=0.5,
-                font=dict(size=24, color='white', family='Poppins')
-            )
-        )
-        
-        return fig
     
     @staticmethod
     def create_forecast_comparison_chart(historical_df, forecast_df, title="Satış Tahmin Karşılaştırması"):
@@ -2779,68 +2594,6 @@ def main():
         else:
             product_cols = {'pf': sales_columns.get('IZOTONIK_PF', 'PF IZOTONIK'),
                            'rakip': sales_columns.get('IZOTONIK_COMPETITOR', 'DIGER IZOTONIK')}
-        
-    # =============================================================================
-# TEMEL ANALİZ FONKSİYONLARI
-# =============================================================================
-
-    def calculate_city_performance(df, product_cols):
-    """Şehir bazlı performans verilerini hesaplar"""
-    if df.empty:
-        return pd.DataFrame()
-    
-    if 'CITY_NORMALIZED' not in df.columns or 'REGION' not in df.columns:
-        return pd.DataFrame()
-    
-    city_perf = df.groupby(['CITY_NORMALIZED', 'REGION']).agg({
-        product_cols['pf']: 'sum',
-        product_cols['rakip']: 'sum'
-    }).reset_index()
-    
-    city_perf.columns = ['City', 'Region', 'PF_Satis', 'Rakip_Satis']
-    city_perf['Toplam_Pazar'] = city_perf['PF_Satis'] + city_perf['Rakip_Satis']
-    city_perf['Pazar_Payi_%'] = (city_perf['PF_Satis'] / city_perf['Toplam_Pazar'] * 100).fillna(0)
-    return city_perf
-
-    def calculate_territory_performance(df, product_cols):
-    """Territory bazlı performans verilerini hesaplar"""
-    if df.empty:
-        return pd.DataFrame()
-    
-    if 'TERRITORIES' not in df.columns or 'REGION' not in df.columns:
-        return pd.DataFrame()
-        
-    territory_perf = df.groupby(['TERRITORIES', 'REGION']).agg({
-        product_cols['pf']: 'sum',
-        product_cols['rakip']: 'sum'
-    }).reset_index()
-    
-    territory_perf.columns = ['Territory', 'Region', 'PF_Satis', 'Rakip_Satis']
-    territory_perf['Toplam_Pazar'] = territory_perf['PF_Satis'] + territory_perf['Rakip_Satis']
-    territory_perf['Pazar_Payi_%'] = (territory_perf['PF_Satis'] / territory_perf['Toplam_Pazar'] * 100).fillna(0)
-    territory_perf['Agirlik_%'] = (territory_perf['PF_Satis'] / territory_perf['PF_Satis'].sum() * 100).fillna(0)
-    territory_perf['Goreceli_Pazar_Payi'] = (territory_perf['PF_Satis'] / territory_perf['Rakip_Satis']).replace([np.inf, -np.inf], 0).fillna(0)
-    return territory_perf
-
-    def calculate_time_series(df, product_cols):
-    """Zaman serisi verilerini hazırlar"""
-    if df.empty:
-        return pd.DataFrame()
-        
-    ts_data = df.groupby('DATE').agg({
-        product_cols['pf']: 'sum',
-        product_cols['rakip']: 'sum'
-    }).reset_index()
-    
-    ts_data.columns = ['DATE', 'PF_Satis', 'Rakip_Satis']
-    ts_data = ts_data.sort_values('DATE')
-    if len(ts_data) > 1:
-        ts_data['PF_Buyume_%'] = ts_data['PF_Satis'].pct_change() * 100
-        ts_data['Rakip_Buyume_%'] = ts_data['Rakip_Satis'].pct_change() * 100
-    else:
-        ts_data['PF_Buyume_%'] = 0
-        ts_data['Rakip_Buyume_%'] = 0
-    return ts_data
     
     # ANA İÇERİK - TAB'LER
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
@@ -3069,6 +2822,9 @@ def main():
     # =========================================================================
     with tab2:
         st.header("🗺️ Gelişmiş Harita Analizi")
+        
+        # Şehir performansını hesapla
+        city_perf = calculate_city_performance(df_filtered, product_cols)
         
         if city_perf is not None and len(city_perf) > 0:
             # Harita seçimi
@@ -4399,5 +4155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
