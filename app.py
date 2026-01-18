@@ -2363,7 +2363,7 @@ def main():
                     for i in range(6):
                         forecast_data.append({
                             'DATE': forecast_dates[i],
-                            'Prediction': avg_sales * (1 + (i * 0.02))  %2 artış
+                            'Prediction': avg_sales * (1 + (i * 0.02))  #%2 artış
                         })
                     
                     forecast_df = pd.DataFrame(forecast_data)
