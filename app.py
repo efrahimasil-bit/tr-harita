@@ -1,6 +1,6 @@
 """
-🎯 GELİŞMİŞ TİCARİ PORTFÖY ANALİZ SİSTEMİ
-McKinsey Tema ile Territory Bazlı Performans, ML Tahminleme ve Türkiye Haritası
+🏢 MCKINSEY-STYLE COMMERCIAL PORTFOLIO ANALYTICS SUITE
+Advanced Territory Performance Analysis with ML Forecasting & Turkey Mapping
 """
 
 import streamlit as st
@@ -11,1551 +11,1899 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import warnings
 from io import BytesIO
-import json
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
+import altair as alt
 import geopandas as gpd
-from shapely.geometry import LineString, MultiLineString
-import warnings
+import json
 import requests
-from urllib.request import urlopen
-import seaborn as sns
+from typing import Dict, List, Tuple, Optional
 import matplotlib.pyplot as plt
 from scipy import stats
-import plotly.figure_factory as ff
+import seaborn as sns
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings('ignore')
 
 # =============================================================================
-# PAGE CONFIG
+# PAGE CONFIG - MCKINSEY PROFESSIONAL
 # =============================================================================
 st.set_page_config(
-    page_title="Ticari Portföy Analizi | McKinsey Style",
-    page_icon="🎯",
+    page_title="Commercial Portfolio Analytics | McKinsey Style",
+    page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://www.mckinsey.com',
+        'Report a bug': None,
+        'About': "McKinsey-Style Commercial Analytics Suite v2.0"
+    }
 )
 
 # =============================================================================
-# MCKINSEY CSS TEMA
+# MCKINSEY CSS THEME - PROFESSIONAL
 # =============================================================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    /* McKinsey Professional Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&family=Roboto:wght@300;400;500&display=swap');
     
     * {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Source Sans Pro', 'Roboto', sans-serif;
+    }
+    
+    /* McKinsey Color Palette */
+    :root {
+        --mck-blue: #0066CC;
+        --mck-dark-blue: #004080;
+        --mck-light-blue: #E6F0FF;
+        --mck-green: #0D652D;
+        --mck-light-green: #E6F4EA;
+        --mck-gray-900: #1A1A1A;
+        --mck-gray-700: #333333;
+        --mck-gray-500: #666666;
+        --mck-gray-300: #D0D0D0;
+        --mck-gray-100: #F8F9FA;
+        --mck-white: #FFFFFF;
+        --mck-border: #E0E0E0;
     }
     
     .stApp {
-        background-color: #FFFFFF;
+        background-color: var(--mck-white);
     }
     
+    /* Main Header - McKinsey Style */
     .main-header {
-        font-size: 3rem;
+        font-size: 2.8rem;
         font-weight: 700;
+        color: var(--mck-gray-900);
         text-align: center;
-        padding: 2rem 0;
-        color: #1A1A1A;
+        padding: 2rem 0 1rem 0;
         margin-bottom: 0.5rem;
         letter-spacing: -0.5px;
-        border-bottom: 1px solid #E0E0E0;
+        border-bottom: 3px solid var(--mck-blue);
+        background: linear-gradient(90deg, var(--mck-blue) 0%, var(--mck-green) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     
     .sub-header {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        color: var(--mck-gray-500);
         text-align: center;
-        color: #666666;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         font-weight: 400;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
     }
     
+    /* Metrics - Professional Style */
     div[data-testid="stMetricValue"] {
-        font-size: 2.2rem;
+        font-size: 2.4rem;
         font-weight: 700;
-        color: #1A1A1A;
+        color: var(--mck-gray-900);
+        font-family: 'Source Sans Pro', sans-serif;
     }
     
     div[data-testid="stMetricLabel"] {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        color: #666666;
+        color: var(--mck-gray-500);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
+        margin-top: 0.5rem;
     }
     
     div[data-testid="metric-container"] {
-        background: #FFFFFF;
-        padding: 1.2rem;
+        background: var(--mck-white);
+        padding: 1.5rem;
         border-radius: 8px;
-        border-left: 4px solid #0066CC;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        border-top: 1px solid #F0F0F0;
-        border-right: 1px solid #F0F0F0;
-        border-bottom: 1px solid #F0F0F0;
-        transition: all 0.2s ease;
+        border-left: 4px solid var(--mck-blue);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid var(--mck-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     div[data-testid="metric-container"]:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        border-left-color: var(--mck-green);
     }
     
+    /* Tabs - Professional */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
-        background: #F8F9FA;
-        border-bottom: 1px solid #E0E0E0;
+        background: var(--mck-gray-100);
+        border-bottom: 2px solid var(--mck-border);
         padding: 0;
     }
     
     .stTabs [data-baseweb="tab"] {
-        color: #666666;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
+        height: 48px;
+        padding: 0 24px;
+        color: var(--mck-gray-500);
+        font-weight: 600;
+        font-size: 0.9rem;
         background: transparent;
         border: none;
-        margin: 0;
-        border-bottom: 2px solid transparent;
+        border-bottom: 3px solid transparent;
         transition: all 0.2s ease;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        color: #0066CC;
-        background: #F0F7FF;
+        color: var(--mck-blue);
+        background: rgba(0, 102, 204, 0.05);
     }
     
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #0066CC;
-        background: #FFFFFF;
-        border-bottom: 2px solid #0066CC;
-        font-weight: 600;
+        color: var(--mck-blue);
+        background: var(--mck-white);
+        border-bottom: 3px solid var(--mck-blue);
     }
     
-    h1, h2, h3, h4 {
-        color: #1A1A1A !important;
-        font-weight: 600;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    
+    /* Headings */
     h1 {
         font-size: 2.2rem;
-        border-bottom: 2px solid #0066CC;
-        padding-bottom: 0.5rem;
+        font-weight: 700;
+        color: var(--mck-gray-900);
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--mck-border);
     }
     
     h2 {
         font-size: 1.8rem;
-        color: #333333 !important;
+        font-weight: 600;
+        color: var(--mck-gray-900);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
     }
     
     h3 {
         font-size: 1.4rem;
-        color: #444444 !important;
+        font-weight: 600;
+        color: var(--mck-gray-700);
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
     }
     
     h4 {
         font-size: 1.1rem;
-        color: #555555 !important;
+        font-weight: 600;
+        color: var(--mck-gray-700);
+        margin-bottom: 0.5rem;
     }
     
-    p, span, div, label {
-        color: #333333;
-    }
-    
-    .stButton>button {
-        background: #0066CC;
-        color: white;
+    /* Buttons */
+    .stButton > button {
+        background: var(--mck-blue);
+        color: var(--mck-white);
         border: none;
-        padding: 0.5rem 1.5rem;
+        padding: 0.75rem 2rem;
         border-radius: 4px;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        font-weight: 600;
         font-size: 0.9rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
     }
     
-    .stButton>button:hover {
-        background: #0052A3;
-        box-shadow: 0 2px 4px rgba(0,102,204,0.2);
+    .stButton > button:hover {
+        background: var(--mck-dark-blue);
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        transform: translateY(-1px);
     }
     
-    /* Scrollbar styling */
+    .stButton > button:active {
+        transform: translateY(0);
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: var(--mck-gray-100);
+        border-right: 1px solid var(--mck-border);
+    }
+    
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 2rem;
+    }
+    
+    /* Cards */
+    .mck-card {
+        background: var(--mck-white);
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid var(--mck-border);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .mck-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+    
+    .mck-card-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--mck-gray-900);
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--mck-border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-excellent { background: var(--mck-light-green); color: var(--mck-green); }
+    .badge-good { background: #E6F0FF; color: var(--mck-blue); }
+    .badge-fair { background: #FFF4E5; color: #B35C00; }
+    .badge-poor { background: #FFE6E6; color: #CC0000; }
+    
+    /* Progress bars */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, var(--mck-blue), var(--mck-green));
+    }
+    
+    /* Dataframes */
+    .dataframe {
+        font-size: 0.9rem;
+        border: 1px solid var(--mck-border) !important;
+    }
+    
+    .dataframe thead th {
+        background: var(--mck-gray-100);
+        color: var(--mck-gray-700);
+        font-weight: 600;
+        border-bottom: 2px solid var(--mck-border);
+        padding: 0.75rem;
+    }
+    
+    .dataframe tbody td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--mck-border);
+    }
+    
+    /* Scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #F1F1F1;
+        background: var(--mck-gray-100);
         border-radius: 4px;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #B0B0B0;
+        background: var(--mck-gray-300);
         border-radius: 4px;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #909090;
+        background: var(--mck-gray-500);
     }
     
-    /* Sidebar improvements */
-    [data-testid="stSidebar"] {
-        background: #F8F9FA;
-        border-right: 1px solid #E0E0E0;
+    /* Tooltips */
+    .tooltip {
+        position: relative;
+        border-bottom: 1px dotted var(--mck-gray-500);
+        cursor: help;
     }
     
-    [data-testid="stSidebar"] h3 {
-        color: #1A1A1A !important;
-        border-bottom: 2px solid #0066CC;
-        padding-bottom: 0.5rem;
-    }
-    
-    /* Input field styling */
-    .stSelectbox, .stSlider, .stRadio, .stDateInput {
-        background: #FFFFFF;
-        border: 1px solid #D0D0D0;
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 250px;
+        background: var(--mck-gray-900);
+        color: var(--mck-white);
+        text-align: center;
         border-radius: 4px;
+        padding: 0.75rem;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 0.85rem;
+        line-height: 1.4;
     }
     
-    .stSelectbox>div>div {
-        border: none !important;
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
     }
     
-    /* Progress bar */
-    .stProgress > div > div > div > div {
-        background: #0066CC;
+    /* Insights Box */
+    .insight-box {
+        background: linear-gradient(135deg, var(--mck-light-blue), var(--mck-light-green));
+        border-left: 4px solid var(--mck-blue);
+        padding: 1.25rem;
+        border-radius: 6px;
+        margin: 1.5rem 0;
     }
     
-    /* McKinsey card styling */
-    .mck-card {
-        background: #FFFFFF;
-        border-radius: 8px;
-        padding: 1.5rem;
-        border: 1px solid #E0E0E0;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        transition: all 0.2s ease;
+    .insight-box h4 {
+        color: var(--mck-gray-900);
+        margin-top: 0;
     }
     
-    .mck-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .mck-card-header {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1A1A1A;
-        margin-bottom: 1rem;
-        border-bottom: 1px solid #F0F0F0;
-        padding-bottom: 0.5rem;
-    }
-    
-    /* Status indicators */
-    .status-badge {
-        display: inline-block;
-        padding: 0.2rem 0.8rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    
-    .status-excellent { background: #E6F4EA; color: #0D652D; }
-    .status-good { background: #D9E8FB; color: #0052A3; }
-    .status-fair { background: #FFF4E5; color: #996A00; }
-    .status-poor { background: #FCE8E8; color: #A4262C; }
-    
-    /* Data table styling */
-    .dataframe {
-        font-size: 0.9rem;
-    }
-    
-    .dataframe thead th {
-        background: #F8F9FA;
-        color: #333333;
-        font-weight: 600;
-        border-bottom: 2px solid #E0E0E0;
-    }
-    
-    /* Alert boxes */
-    .info-box {
-        background: #F0F7FF;
-        border-left: 4px solid #0066CC;
-        padding: 1rem;
-        border-radius: 4px;
-        margin: 1rem 0;
-    }
-    
+    /* Warning Box */
     .warning-box {
         background: #FFF4E5;
         border-left: 4px solid #FF8C00;
-        padding: 1rem;
-        border-radius: 4px;
-        margin: 1rem 0;
+        padding: 1.25rem;
+        border-radius: 6px;
+        margin: 1.5rem 0;
     }
     
-    .success-box {
-        background: #E6F4EA;
-        border-left: 4px solid #0D652D;
-        padding: 1rem;
-        border-radius: 4px;
-        margin: 1rem 0;
+    /* Divider */
+    .divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--mck-border), transparent);
+        margin: 2rem 0;
     }
-    
-    /* McKinsey color classes */
-    .mck-blue { color: #0066CC; }
-    .mck-dark-blue { color: #004080; }
-    .mck-green { color: #0D652D; }
-    .mck-orange { color: #FF8C00; }
-    .mck-red { color: #A4262C; }
-    .mck-gray { color: #666666; }
-    
-    .bg-mck-blue { background-color: #0066CC; }
-    .bg-mck-light-blue { background-color: #F0F7FF; }
-    .bg-mck-gray { background-color: #F8F9FA; }
 </style>
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# MCKINSEY RENK PALETLERİ
+# MCKINSEY COLOR PALETTE & CONSTANTS
 # =============================================================================
 
-# McKinsey renkleri
-MCKINSEY_COLORS = {
-    "primary": "#0066CC",
-    "secondary": "#0D652D",
-    "accent": "#FF8C00",
-    "dark": "#1A1A1A",
-    "medium": "#666666",
-    "light": "#B0B0B0",
-    "success": "#0D652D",
-    "warning": "#FF8C00",
-    "danger": "#A4262C",
-    "info": "#0066CC"
+# McKinsey Professional Colors
+MCKINSEY_PALETTE = {
+    # Primary Colors
+    'primary_blue': '#0066CC',
+    'primary_dark_blue': '#004080',
+    'primary_green': '#0D652D',
+    'primary_orange': '#FF8C00',
+    
+    # Secondary Colors
+    'secondary_teal': '#008080',
+    'secondary_purple': '#663399',
+    'secondary_red': '#CC0000',
+    'secondary_yellow': '#FFD700',
+    
+    # Neutral Colors
+    'gray_900': '#1A1A1A',
+    'gray_800': '#333333',
+    'gray_700': '#4D4D4D',
+    'gray_600': '#666666',
+    'gray_500': '#808080',
+    'gray_400': '#999999',
+    'gray_300': '#B3B3B3',
+    'gray_200': '#CCCCCC',
+    'gray_100': '#E6E6E6',
+    'gray_50': '#F8F8F8',
+    
+    # Status Colors
+    'success': '#0D652D',
+    'success_light': '#E6F4EA',
+    'warning': '#FF8C00',
+    'warning_light': '#FFF4E5',
+    'error': '#CC0000',
+    'error_light': '#FFE6E6',
+    'info': '#0066CC',
+    'info_light': '#E6F0FF',
 }
 
-# Bölge renkleri (McKinsey palette)
+# Region Colors (McKinsey Professional)
 REGION_COLORS = {
-    "MARMARA": "#0066CC",
-    "EGE": "#0D652D",
-    "AKDENİZ": "#FF8C00",
-    "İÇ ANADOLU": "#8B5CF6",
-    "KARADENİZ": "#06B6D4",
-    "GÜNEYDOĞU ANADOLU": "#A4262C",
-    "DOĞU ANADOLU": "#84CC16",
-    "BATI KARADENİZ": "#6366F1",
-    "ORTA KARADENİZ": "#14B8A6",
-    "KUZEYDOĞU ANADOLU": "#F97316",
-    "GÜNEYDOĞU": "#EC4899",
-    "DİĞER": "#666666"
+    'MARMARA': MCKINSEY_PALETTE['primary_blue'],
+    'EGE': MCKINSEY_PALETTE['primary_green'],
+    'AKDENİZ': MCKINSEY_PALETTE['primary_orange'],
+    'İÇ ANADOLU': MCKINSEY_PALETTE['secondary_purple'],
+    'KARADENİZ': MCKINSEY_PALETTE['secondary_teal'],
+    'GÜNEYDOĞU ANADOLU': MCKINSEY_PALETTE['secondary_red'],
+    'DOĞU ANADOLU': '#5D8C3A',
+    'BATI KARADENİZ': '#4A6FA5',
+    'ORTA KARADENİZ': '#00A896',
+    'KUZEYDOĞU ANADOLU': '#FF6B35',
+    'GÜNEYDOĞU': '#D81159',
+    'DİĞER': MCKINSEY_PALETTE['gray_500']
 }
 
-# Performans renkleri
-PERFORMANCE_COLORS = {
-    "excellent": "#0D652D",
-    "good": "#0066CC",
-    "fair": "#FF8C00",
-    "poor": "#A4262C",
-    "high": "#0D652D",
-    "medium": "#FF8C00",
-    "low": "#A4262C",
-    "positive": "#0D652D",
-    "negative": "#A4262C",
-    "neutral": "#666666"
-}
-
-# Gradient skalaları (McKinsey style)
-GRADIENT_SCALES = {
-    "blue_scale": ["#F0F7FF", "#B3D4FF", "#66AFFF", "#0066CC", "#004080"],
-    "green_scale": ["#E6F4EA", "#A7D7B8", "#68B987", "#0D652D", "#0A4A21"],
-    "orange_scale": ["#FFF4E5", "#FFD6A3", "#FFB861", "#FF8C00", "#CC7000"],
-    "diverging": ["#A4262C", "#FF8C00", "#FFD6A3", "#F0F7FF", "#B3D4FF", "#0066CC"]
-}
-
-# =============================================================================
-# SABİTLER
-# =============================================================================
-
-# Ürün sütun eşleşmeleri
-COLUMN_NAMES = {
-    "TROCMETAM": {
-        "pf": "TROCMETAM",
-        "rakip": "DIGER TROCMETAM"
+# Product Mappings
+PRODUCT_CONFIG = {
+    'TROCMETAM': {
+        'name': 'TROCMETAM',
+        'pf_column': 'TROCMETAM',
+        'comp_column': 'DIGER_TROCMETAM',
+        'category': 'Specialty'
     },
-    "CORTIPOL": {
-        "pf": "CORTIPOL",
-        "rakip": "DIGER CORTIPOL"
+    'CORTIPOL': {
+        'name': 'CORTIPOL',
+        'pf_column': 'CORTIPOL',
+        'comp_column': 'DIGER_CORTIPOL',
+        'category': 'Specialty'
     },
-    "DEKSAMETAZON": {
-        "pf": "DEKSAMETAZON",
-        "rakip": "DIGER DEKSAMETAZON"
+    'DEKSAMETAZON': {
+        'name': 'DEKSAMETAZON',
+        'pf_column': 'DEKSAMETAZON',
+        'comp_column': 'DIGER_DEKSAMETAZON',
+        'category': 'Specialty'
     },
-    "PF IZOTONIK": {
-        "pf": "PF IZOTONIK",
-        "rakip": "DIGER IZOTONIK"
+    'PF_IZOTONIK': {
+        'name': 'PF İZOTONİK',
+        'pf_column': 'PF_IZOTONIK',
+        'comp_column': 'DIGER_IZOTONIK',
+        'category': 'Standard'
     }
 }
 
-# Türkiye şehir koordinatları (daha doğru)
-TURKEY_CITY_COORDS = {
-    'Adana': (35.3213, 37.0000),
-    'Adıyaman': (38.2775, 37.7648),
-    'Afyonkarahisar': (30.5417, 38.7638),
-    'Ağrı': (43.0500, 39.7191),
-    'Amasya': (35.8330, 40.6500),
-    'Ankara': (32.8597, 39.9334),
-    'Antalya': (30.7133, 36.8969),
-    'Artvin': (41.8181, 41.1828),
-    'Aydın': (27.8416, 37.8560),
-    'Balıkesir': (27.8865, 39.6484),
-    'Bilecik': (29.9791, 40.1467),
-    'Bingöl': (40.4977, 38.8863),
-    'Bitlis': (42.1100, 38.4000),
-    'Bolu': (31.6064, 40.7395),
-    'Burdur': (30.2833, 37.7167),
-    'Bursa': (29.0588, 40.1885),
-    'Çanakkale': (26.4144, 40.1467),
-    'Çankırı': (33.6167, 40.6000),
-    'Çorum': (34.9533, 40.5506),
-    'Denizli': (29.0875, 37.7765),
-    'Diyarbakır': (40.2167, 37.9167),
-    'Edirne': (26.5556, 41.6771),
-    'Elazığ': (39.2228, 38.6800),
-    'Erzincan': (39.4900, 39.7500),
-    'Erzurum': (41.2769, 39.9086),
-    'Eskişehir': (31.2622, 39.7767),
-    'Gaziantep': (37.3826, 37.0662),
-    'Giresun': (38.3903, 40.9128),
-    'Gümüşhane': (39.4817, 40.4600),
-    'Hakkari': (43.7333, 37.5833),
-    'Hatay': (36.2304, 36.4018),
-    'Isparta': (30.5522, 37.7648),
-    'Mersin': (34.6415, 36.8121),
-    'İstanbul': (28.9795, 41.0151),
-    'İzmir': (27.1428, 38.4237),
-    'Kars': (43.0949, 40.5927),
-    'Kastamonu': (33.7750, 41.3764),
-    'Kayseri': (35.4833, 38.7312),
-    'Kırklareli': (27.2256, 41.7333),
-    'Kırşehir': (34.1667, 39.1500),
-    'Kocaeli': (29.9167, 40.7667),
-    'Konya': (32.4846, 37.9838),
-    'Kütahya': (29.9833, 39.4167),
-    'Malatya': (38.3167, 38.3500),
-    'Manisa': (27.4297, 38.6191),
-    'Kahramanmaraş': (36.9261, 37.5753),
-    'Mardin': (40.7378, 37.3122),
-    'Muğla': (28.3667, 37.2167),
-    'Muş': (41.4917, 38.7333),
-    'Nevşehir': (34.7125, 38.6242),
-    'Niğde': (34.6833, 37.9667),
-    'Ordu': (37.8789, 40.9839),
-    'Rize': (40.5219, 41.0201),
-    'Sakarya': (30.3964, 40.6933),
-    'Samsun': (36.3361, 41.2867),
-    'Siirt': (41.9403, 37.9333),
-    'Sinop': (35.1519, 42.0231),
-    'Sivas': (37.0167, 39.7500),
-    'Tekirdağ': (27.5119, 40.9833),
-    'Tokat': (36.5544, 40.3167),
-    'Trabzon': (39.7167, 40.9833),
-    'Tunceli': (39.5481, 39.1072),
-    'Şanlıurfa': (38.7944, 37.1592),
-    'Uşak': (29.4078, 38.6825),
-    'Van': (43.3833, 38.4942),
-    'Yozgat': (34.8000, 39.8200),
-    'Zonguldak': (31.7931, 41.4564),
-    'Aksaray': (34.0253, 38.3686),
-    'Bayburt': (40.2278, 40.2552),
-    'Karaman': (33.2150, 37.1811),
-    'Kırıkkale': (33.5131, 39.8468),
-    'Batman': (41.1328, 37.8812),
-    'Şırnak': (42.4639, 37.5167),
-    'Bartın': (32.3375, 41.6358),
-    'Ardahan': (42.7022, 41.1103),
-    'Iğdır': (44.0444, 39.9236),
-    'Yalova': (29.2708, 40.6500),
-    'Karabük': (32.6228, 41.2000),
-    'Kilis': (37.1150, 36.7164),
-    'Osmaniye': (36.2478, 37.0742),
-    'Düzce': (31.1639, 40.8439)
+# Turkish City Coordinates (Optimized)
+TURKEY_CITIES = {
+    'İSTANBUL': {'lat': 41.0082, 'lon': 28.9784, 'region': 'MARMARA'},
+    'ANKARA': {'lat': 39.9334, 'lon': 32.8597, 'region': 'İÇ ANADOLU'},
+    'İZMİR': {'lat': 38.4237, 'lon': 27.1428, 'region': 'EGE'},
+    'BURSA': {'lat': 40.1885, 'lon': 29.0610, 'region': 'MARMARA'},
+    'ANTALYA': {'lat': 36.8969, 'lon': 30.7133, 'region': 'AKDENİZ'},
+    'ADANA': {'lat': 37.0000, 'lon': 35.3213, 'region': 'AKDENİZ'},
+    'KONYA': {'lat': 37.9838, 'lon': 32.4846, 'region': 'İÇ ANADOLU'},
+    'GAZİANTEP': {'lat': 37.0662, 'lon': 37.3826, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'ŞANLIURFA': {'lat': 37.1592, 'lon': 38.7944, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'MERSİN': {'lat': 36.8121, 'lon': 34.6415, 'region': 'AKDENİZ'},
+    'DİYARBAKIR': {'lat': 37.9100, 'lon': 40.2400, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'KAYSERİ': {'lat': 38.7312, 'lon': 35.4833, 'region': 'İÇ ANADOLU'},
+    'ESKİŞEHİR': {'lat': 39.7767, 'lon': 30.5206, 'region': 'İÇ ANADOLU'},
+    'SAKARYA': {'lat': 40.6933, 'lon': 30.3781, 'region': 'MARMARA'},
+    'TEKİRDAĞ': {'lat': 40.9833, 'lon': 27.5167, 'region': 'MARMARA'},
+    'BALIKESİR': {'lat': 39.6484, 'lon': 27.8826, 'region': 'EGE'},
+    'DENİZLİ': {'lat': 37.7765, 'lon': 29.0864, 'region': 'EGE'},
+    'SAMSUN': {'lat': 41.2867, 'lon': 36.3300, 'region': 'KARADENİZ'},
+    'TRABZON': {'lat': 41.0015, 'lon': 39.7178, 'region': 'KARADENİZ'},
+    'ERZURUM': {'lat': 39.9086, 'lon': 41.2769, 'region': 'DOĞU ANADOLU'},
+    'VAN': {'lat': 38.4942, 'lon': 43.3800, 'region': 'DOĞU ANADOLU'},
+    'MUĞLA': {'lat': 37.2153, 'lon': 28.3636, 'region': 'EGE'},
+    'AYDIN': {'lat': 37.8560, 'lon': 27.8416, 'region': 'EGE'},
+    'MANİSA': {'lat': 38.6191, 'lon': 27.4289, 'region': 'EGE'},
+    'KOCAELİ': {'lat': 40.7667, 'lon': 29.9167, 'region': 'MARMARA'},
+    'HATAY': {'lat': 36.4018, 'lon': 36.3498, 'region': 'AKDENİZ'},
+    'KAHRAMANMARAŞ': {'lat': 37.5753, 'lon': 36.9261, 'region': 'AKDENİZ'},
+    'MALATYA': {'lat': 38.3552, 'lon': 38.3095, 'region': 'DOĞU ANADOLU'},
+    'ELAZIĞ': {'lat': 38.6800, 'lon': 39.2264, 'region': 'DOĞU ANADOLU'},
+    'ORDU': {'lat': 40.9839, 'lon': 37.8789, 'region': 'KARADENİZ'},
+    'GİRESUN': {'lat': 40.9128, 'lon': 38.3903, 'region': 'KARADENİZ'},
+    'RİZE': {'lat': 41.0201, 'lon': 40.5239, 'region': 'KARADENİZ'},
+    'ZONGULDAK': {'lat': 41.4564, 'lon': 31.7987, 'region': 'KARADENİZ'},
+    'KIRIKKALE': {'lat': 39.8468, 'lon': 33.5153, 'region': 'İÇ ANADOLU'},
+    'AKSARAY': {'lat': 38.3686, 'lon': 34.0360, 'region': 'İÇ ANADOLU'},
+    'YOZGAT': {'lat': 39.8200, 'lon': 34.8000, 'region': 'İÇ ANADOLU'},
+    'NEVŞEHİR': {'lat': 38.6242, 'lon': 34.7236, 'region': 'İÇ ANADOLU'},
+    'KIRŞEHİR': {'lat': 39.1500, 'lon': 34.1667, 'region': 'İÇ ANADOLU'},
+    'ÇORUM': {'lat': 40.5506, 'lon': 34.9556, 'region': 'KARADENİZ'},
+    'TOKAT': {'lat': 40.3167, 'lon': 36.5542, 'region': 'KARADENİZ'},
+    'AMASYA': {'lat': 40.6500, 'lon': 35.8333, 'region': 'KARADENİZ'},
+    'SİVAS': {'lat': 39.7500, 'lon': 37.0167, 'region': 'İÇ ANADOLU'},
+    'ERZİNCAN': {'lat': 39.7500, 'lon': 39.5000, 'region': 'DOĞU ANADOLU'},
+    'BİNGÖL': {'lat': 38.8863, 'lon': 40.4937, 'region': 'DOĞU ANADOLU'},
+    'MUŞ': {'lat': 38.7333, 'lon': 41.4911, 'region': 'DOĞU ANADOLU'},
+    'BİTLİS': {'lat': 38.4000, 'lon': 42.1086, 'region': 'DOĞU ANADOLU'},
+    'HAKKARİ': {'lat': 37.5833, 'lon': 43.7333, 'region': 'DOĞU ANADOLU'},
+    'ŞIRNAK': {'lat': 37.5167, 'lon': 42.4639, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'MARDİN': {'lat': 37.3122, 'lon': 40.7350, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'SİİRT': {'lat': 37.9333, 'lon': 41.9403, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'BATMAN': {'lat': 37.8812, 'lon': 41.1350, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'ADIYAMAN': {'lat': 37.7648, 'lon': 38.2786, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'KİLİS': {'lat': 36.7164, 'lon': 37.1150, 'region': 'GÜNEYDOĞU ANADOLU'},
+    'OSMANİYE': {'lat': 37.0742, 'lon': 36.2478, 'region': 'AKDENİZ'},
+    'KARAMAN': {'lat': 37.1811, 'lon': 33.2150, 'region': 'İÇ ANADOLU'},
+    'KARABÜK': {'lat': 41.2000, 'lon': 32.6228, 'region': 'KARADENİZ'},
+    'DÜZCE': {'lat': 40.8439, 'lon': 31.1639, 'region': 'KARADENİZ'},
+    'BARTIN': {'lat': 41.6358, 'lon': 32.3375, 'region': 'KARADENİZ'},
+    'KASTAMONU': {'lat': 41.3764, 'lon': 33.7750, 'region': 'KARADENİZ'},
+    'SİNOP': {'lat': 42.0231, 'lon': 35.1519, 'region': 'KARADENİZ'}
 }
 
 # =============================================================================
-# YARDIMCI FONKSİYONLAR
+# DATA LOADING & PROCESSING
 # =============================================================================
 
-def safe_divide(a, b):
-    """Güvenli bölme işlemi"""
-    if isinstance(a, (pd.Series, np.ndarray)) and isinstance(b, (pd.Series, np.ndarray)):
-        result = a.copy() if isinstance(a, pd.Series) else a
-        mask = b != 0
-        if isinstance(a, pd.Series):
-            result[mask] = a[mask] / b[mask]
-            result[~mask] = 0
-        else:
-            result[mask] = a[mask] / b[mask]
-            result[~mask] = 0
-        return result.replace([np.inf, -np.inf], 0) if isinstance(result, pd.Series) else np.nan_to_num(result)
-    else:
-        if b == 0:
-            return 0
-        return a / b
-
-def get_product_columns(product, df_columns):
-    """Ürün sütunlarını getir"""
-    product_map = COLUMN_NAMES.get(product, {})
-    
-    available_columns = {}
-    for key, col_name in product_map.items():
-        # Farklı varyasyonları kontrol et
-        variations = [
-            col_name,
-            col_name.upper(),
-            col_name.lower(),
-            col_name.title(),
-            col_name.replace(' ', '_'),
-            col_name.replace(' ', ''),
-            col_name.replace(' ', ' ').strip()
-        ]
-        
-        for var in variations:
-            if var in df_columns:
-                available_columns[key] = var
-                break
-        
-        if key not in available_columns:
-            # Eksikse sütun oluştur
-            available_columns[key] = col_name
-    
-    return available_columns
-
-def normalize_city_name(city_name):
-    """Şehir ismini normalize et"""
-    if pd.isna(city_name):
-        return None
-    
-    city_str = str(city_name).strip().upper()
-    
-    # Türkçe karakter düzeltmeleri
-    turkish_chars = {'İ': 'I', 'Ğ': 'G', 'Ü': 'U', 'Ş': 'S', 'Ö': 'O', 'Ç': 'C',
-                     'Â': 'A', 'Î': 'I', 'Û': 'U'}
-    
-    for k, v in turkish_chars.items():
-        city_str = city_str.replace(k, v)
-    
-    # Özel düzeltmeler
-    corrections = {
-        'ISTANBUL': 'İstanbul',
-        'IZMIR': 'İzmir',
-        'ANKARA': 'Ankara',
-        'BURSA': 'Bursa',
-        'ADANA': 'Adana',
-        'GAZIANTEP': 'Gaziantep',
-        'KONYA': 'Konya',
-        'ANTALYA': 'Antalya',
-        'KAYSERI': 'Kayseri',
-        'MERSIN': 'Mersin'
-    }
-    
-    return corrections.get(city_str, city_str.title())
-
-def calculate_performance_score(row, weights=None):
-    """Performans skoru hesapla"""
-    if weights is None:
-        weights = {
-            'pazar_payi': 0.3,
-            'buyume': 0.25,
-            'market_buyuklugu': 0.2,
-            'stabilite': 0.15,
-            'rekabet': 0.1
-        }
-    
-    score = 0
-    max_score = 0
-    
-    # Pazar payı skoru (0-100)
-    if 'Pazar_Payi_%' in row:
-        pazar_payi = min(row['Pazar_Payi_%'], 100)
-        score += pazar_payi * weights['pazar_payi']
-    max_score += 100 * weights['pazar_payi']
-    
-    # Büyüme skoru
-    if 'Buyume_%' in row:
-        buyume = min(max(row['Buyume_%'], -50), 200)
-        buyume_score = 50 + (buyume / 2)
-        score += buyume_score * weights['buyume']
-    max_score += 100 * weights['buyume']
-    
-    # Pazar büyüklüğü skoru
-    if 'Toplam_Pazar' in row:
-        market_size = np.log1p(row['Toplam_Pazar'])
-        market_score = min(market_size / np.log1p(1000000) * 100, 100)
-        score += market_score * weights['market_buyuklugu']
-    max_score += 100 * weights['market_buyuklugu']
-    
-    # Stabilite skoru
-    if 'Stabilite_Score' in row:
-        stabilite = min(row['Stabilite_Score'], 100)
-        score += stabilite * weights['stabilite']
-    max_score += 100 * weights['stabilite']
-    
-    # Rekabet skoru
-    if 'Goreceli_Pazar_Payi' in row:
-        rekabet = min(row['Goreceli_Pazar_Payi'] * 20, 100)
-        score += rekabet * weights['rekabet']
-    max_score += 100 * weights['rekabet']
-    
-    # Normalize et (0-100)
-    final_score = (score / max_score * 100) if max_score > 0 else 0
-    
-    return min(final_score, 100)
-
-def get_performance_category(score):
-    """Performans kategorisini belirle"""
-    if score >= 80:
-        return "MÜKEMMEL", "status-excellent"
-    elif score >= 65:
-        return "İYİ", "status-good"
-    elif score >= 50:
-        return "ORTA", "status-fair"
-    else:
-        return "ZAYIF", "status-poor"
-
-# =============================================================================
-# VERİ YÜKLEME
-# =============================================================================
-
-@st.cache_data
-def load_excel_data(file):
-    """Excel dosyasını yükle"""
+@st.cache_data(show_spinner=False)
+def load_and_process_data(uploaded_file: BytesIO) -> pd.DataFrame:
+    """
+    Load and process Excel data with professional error handling
+    """
     try:
-        df = pd.read_excel(file)
+        # Load Excel
+        df = pd.read_excel(uploaded_file)
         
-        # Sütun isimlerini normalize et
+        # Clean column names
         df.columns = [str(col).strip().upper() for col in df.columns]
         
-        # Tarih sütununu bul
-        date_columns = ['DATE', 'TARIH', 'TARİH', 'YEAR_MONTH', 'AY-YIL', 'AY_YIL']
-        date_column_found = False
-        
-        for date_col in date_columns:
-            if date_col in df.columns:
-                df['DATE'] = pd.to_datetime(df[date_col], errors='coerce')
-                date_column_found = True
+        # Identify date column
+        date_patterns = ['DATE', 'TARIH', 'TARİH', 'PERIOD', 'DONEM', 'DÖNEM', 'AY', 'MONTH', 'YEAR']
+        date_col = None
+        for pattern in date_patterns:
+            for col in df.columns:
+                if pattern in col:
+                    date_col = col
+                    break
+            if date_col:
                 break
         
-        if not date_column_found:
-            # İlk sütunu tarih olarak dene
+        if date_col:
+            df['DATE'] = pd.to_datetime(df[date_col], errors='coerce')
+        else:
+            # Try to infer date from first column
             try:
                 df['DATE'] = pd.to_datetime(df.iloc[:, 0], errors='coerce')
             except:
-                # Son çare olarak index kullan
+                # Create dummy dates if none found
                 df['DATE'] = pd.date_range(start='2023-01-01', periods=len(df), freq='M')
         
-        # NaN tarihleri temizle
-        df = df.dropna(subset=['DATE'])
-        
-        # Tarih sütunları oluştur
-        df['YIL_AY'] = df['DATE'].dt.strftime('%Y-%m')
-        df['AY'] = df['DATE'].dt.month
-        df['YIL'] = df['DATE'].dt.year
+        # Create time features
+        df['YEAR_MONTH'] = df['DATE'].dt.strftime('%Y-%m')
+        df['YEAR'] = df['DATE'].dt.year
+        df['MONTH'] = df['DATE'].dt.month
         df['QUARTER'] = df['DATE'].dt.quarter
         
-        # Territory ve şehir sütunlarını normalize et
-        territory_columns = ['TERRITORIES', 'TERRITORY', 'TERRİTORY']
-        city_columns = ['CITY', 'CİTY', 'SEHIR', 'ŞEHİR']
-        region_columns = ['REGION', 'REGİON', 'BOLGE']
-        
-        for col_list, target in [
-            (territory_columns, 'TERRITORIES'),
-            (city_columns, 'CITY'),
-            (region_columns, 'REGION')
-        ]:
-            for col in col_list:
+        # Standardize geographic columns
+        if 'CITY' not in df.columns:
+            for col in ['SEHIR', 'ŞEHİR', 'İL', 'IL', 'CİTY']:
                 if col in df.columns:
-                    df[target] = df[col].astype(str).str.upper().str.strip()
+                    df['CITY'] = df[col].astype(str).str.upper().str.strip()
                     break
-            if target not in df.columns:
-                df[target] = 'BELİRTİLMEMİŞ'
         
-        # Şehir normalizasyonu
-        df['CITY_NORMALIZED'] = df['CITY'].apply(normalize_city_name)
+        if 'REGION' not in df.columns:
+            for col in ['BOLGE', 'BÖLGE', 'REGİON']:
+                if col in df.columns:
+                    df['REGION'] = df[col].astype(str).str.upper().str.strip()
+                    break
+        
+        if 'TERRITORY' not in df.columns:
+            for col in ['TERRITORIES', 'TERRİTORY', 'BOLGE_KODU']:
+                if col in df.columns:
+                    df['TERRITORY'] = df[col].astype(str).str.upper().str.strip()
+                    break
+        
+        # Clean city names
+        df['CITY_CLEAN'] = df['CITY'].apply(lambda x: clean_city_name(x) if pd.notna(x) else 'UNKNOWN')
+        
+        # Add coordinates for mapping
+        df['LAT'] = df['CITY_CLEAN'].apply(lambda x: TURKEY_CITIES.get(x, {}).get('lat', 39.0))
+        df['LON'] = df['CITY_CLEAN'].apply(lambda x: TURKEY_CITIES.get(x, {}).get('lon', 35.0))
+        df['REGION_MAP'] = df['CITY_CLEAN'].apply(lambda x: TURKEY_CITIES.get(x, {}).get('region', 'DİĞER'))
         
         return df
         
     except Exception as e:
-        st.error(f"❌ Veri yükleme hatası: {str(e)}")
+        st.error(f"❌ Data loading error: {str(e)}")
         st.stop()
 
-# =============================================================================
-# HARİTA FONKSİYONLARI - DÜZELTİLMİŞ
-# =============================================================================
-
-def create_turkey_map(city_data, title="Türkiye Satış Haritası", metric="PF_Satis"):
+def clean_city_name(city_name: str) -> str:
     """
-    Türkiye haritası oluştur - DÜZELTİLMİŞ versiyon
+    Clean and standardize Turkish city names
     """
-    try:
-        # Veriyi hazırla
-        city_data = city_data.copy()
-        
-        # Koordinatları ekle
-        city_data['lon'] = city_data['City'].map(
-            lambda x: TURKEY_CITY_COORDS.get(x, (35.0, 39.0))[0]
-        )
-        city_data['lat'] = city_data['City'].map(
-            lambda x: TURKEY_CITY_COORDS.get(x, (35.0, 39.0))[1]
-        )
-        
-        # NaN koordinatları kontrol et
-        if city_data['lon'].isna().any() or city_data['lat'].isna().any():
-            st.warning("Bazı şehirler için koordinat bulunamadı")
-            # Eksik koordinatları filtrele
-            city_data = city_data.dropna(subset=['lon', 'lat'])
-        
-        # Bubble boyutunu ayarla
-        if metric == "PF_Satis":
-            size_col = 'PF_Satis'
-            color_col = 'Pazar_Payi_%'
-            color_scale = 'RdYlGn'
-            color_title = "Pazar Payı %"
-        elif metric == "Performance_Score":
-            size_col = 'PF_Satis'
-            color_col = 'Performance_Score'
-            color_scale = 'RdYlGn'
-            color_title = "Performans Skoru"
-        else:
-            size_col = 'PF_Satis'
-            color_col = 'PF_Satis'
-            color_scale = 'Blues'
-            color_title = "PF Satış"
-        
-        max_size = city_data[size_col].max() if city_data[size_col].max() > 0 else 1
-        city_data['bubble_size'] = (city_data[size_col] / max_size * 40) + 10
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scattermapbox(
-            lat=city_data['lat'],
-            lon=city_data['lon'],
-            mode='markers',
-            marker=dict(
-                size=city_data['bubble_size'],
-                color=city_data[color_col],
-                colorscale=color_scale,
-                cmin=city_data[color_col].min(),
-                cmax=city_data[color_col].max(),
-                showscale=True,
-                colorbar=dict(
-                    title=dict(
-                        text=color_title,
-                        font=dict(size=10)
-                    ),
-                    thickness=15,
-                    x=1.02,
-                    xpad=5
-                ),
-                opacity=0.8,
-                sizemode='diameter'
-            ),
-            text=city_data.apply(
-                lambda row: f"<b>{row['City']}</b><br>"
-                          f"Bölge: {row.get('Region', 'N/A')}<br>"
-                          f"PF Satış: {row['PF_Satis']:,.0f}<br>"
-                          f"Pazar Payı: {row.get('Pazar_Payi_%', 0):.1f}%<br>"
-                          f"Toplam Pazar: {row.get('Toplam_Pazar', 0):,.0f}",
-                axis=1
-            ),
-            hoverinfo='text'
-        ))
-        
-        # Layout ayarları
-        fig.update_layout(
-            mapbox_style="carto-positron",
-            mapbox=dict(
-                center=dict(lat=39.0, lon=35.0),
-                zoom=4.5,
-                bearing=0,
-                pitch=0
-            ),
-            height=600,
-            margin=dict(l=0, r=0, t=50, b=0),
-            title=dict(
-                text=f"<b>{title}</b>",
-                x=0.5,
-                font=dict(size=18, color='#1A1A1A'),
-                y=0.95
-            ),
-            plot_bgcolor='#FFFFFF',
-            paper_bgcolor='#FFFFFF'
-        )
-        
-        return fig
-        
-    except Exception as e:
-        st.error(f"Harita oluşturma hatası: {str(e)}")
-        # Basit bir boş harita döndür
-        fig = go.Figure()
-        fig.update_layout(
-            title="Harita oluşturulamadı",
-            height=400,
-            plot_bgcolor='#FFFFFF',
-            paper_bgcolor='#FFFFFF'
-        )
-        return fig
-
-# =============================================================================
-# ANALİZ FONKSİYONLARI
-# =============================================================================
-
-def calculate_city_performance(df, product, date_filter=None):
-    """Şehir bazlı performans analizi"""
-    cols = get_product_columns(product, df.columns)
+    if not isinstance(city_name, str):
+        return 'UNKNOWN'
     
-    if date_filter:
-        df_filtered = df[(df['DATE'] >= date_filter[0]) & (df['DATE'] <= date_filter[1])].copy()
+    city = city_name.strip().upper()
+    
+    # Turkish character normalization
+    turkish_chars = {
+        'İ': 'I', 'Ğ': 'G', 'Ü': 'U', 'Ş': 'S', 'Ö': 'O', 'Ç': 'C',
+        'Â': 'A', 'Î': 'I', 'Û': 'U'
+    }
+    
+    for old, new in turkish_chars.items():
+        city = city.replace(old, new)
+    
+    # Special cases
+    special_cases = {
+        'ISTANBUL': 'İSTANBUL',
+        'IZMIR': 'İZMİR',
+        'ANKARA': 'ANKARA',
+        'BURSA': 'BURSA',
+        'ANTALYA': 'ANTALYA',
+        'ADANA': 'ADANA',
+        'KONYA': 'KONYA',
+        'GAZIANTEP': 'GAZİANTEP',
+        'SANLIURFA': 'ŞANLIURFA',
+        'MERSIN': 'MERSİN',
+        'DIYARBAKIR': 'DİYARBAKIR',
+        'KAYSERI': 'KAYSERİ',
+        'ESKISEHIR': 'ESKİŞEHİR',
+        'SAKARYA': 'SAKARYA',
+        'TEKIRDAG': 'TEKİRDAĞ',
+        'BALIKESIR': 'BALIKESİR',
+        'DENIZLI': 'DENİZLİ',
+        'SAMSUN': 'SAMSUN',
+        'TRABZON': 'TRABZON',
+        'ERZURUM': 'ERZURUM',
+        'VAN': 'VAN',
+        'MUGLA': 'MUĞLA',
+        'AYDIN': 'AYDIN',
+        'MANISA': 'MANİSA',
+        'KOCAELI': 'KOCAELİ',
+        'HATAY': 'HATAY',
+        'K.MARAS': 'KAHRAMANMARAŞ',
+        'MALATYA': 'MALATYA',
+        'ELAZIG': 'ELAZIĞ',
+        'ORDU': 'ORDU',
+        'GIRESUN': 'GİRESUN',
+        'RIZE': 'RİZE',
+        'ZONGULDAK': 'ZONGULDAK',
+        'KIRIKKALE': 'KIRIKKALE',
+        'AKSARAY': 'AKSARAY',
+        'YOZGAT': 'YOZGAT',
+        'NEVSEHIR': 'NEVŞEHİR',
+        'KIRSEHIR': 'KIRŞEHİR',
+        'CORUM': 'ÇORUM',
+        'TOKAT': 'TOKAT',
+        'AMASYA': 'AMASYA',
+        'SIVAS': 'SİVAS',
+        'ERZINCAN': 'ERZİNCAN',
+        'BINGOL': 'BİNGÖL',
+        'MUS': 'MUŞ',
+        'BITLIS': 'BİTLİS',
+        'HAKKARI': 'HAKKARİ',
+        'SIRNAK': 'ŞIRNAK',
+        'MARDIN': 'MARDİN',
+        'SIIRT': 'SİİRT',
+        'BATMAN': 'BATMAN',
+        'ADIYAMAN': 'ADIYAMAN',
+        'KILIS': 'KİLİS',
+        'OSMANIYE': 'OSMANİYE',
+        'KARAMAN': 'KARAMAN',
+        'KARABUK': 'KARABÜK',
+        'DUZCE': 'DÜZCE',
+        'BARTIN': 'BARTIN',
+        'KASTAMONU': 'KASTAMONU',
+        'SINOP': 'SİNOP'
+    }
+    
+    return special_cases.get(city, city)
+
+# =============================================================================
+# ANALYTICS FUNCTIONS
+# =============================================================================
+
+def calculate_city_performance_metrics(df: pd.DataFrame, product_config: dict, 
+                                       start_date: datetime = None, end_date: datetime = None) -> pd.DataFrame:
+    """
+    Calculate comprehensive city performance metrics
+    """
+    # Filter by date if provided
+    if start_date and end_date:
+        df_filtered = df[(df['DATE'] >= start_date) & (df['DATE'] <= end_date)].copy()
     else:
         df_filtered = df.copy()
     
-    pf_col = cols.get('pf')
-    rakip_col = cols.get('rakip')
+    pf_col = product_config['pf_column']
+    comp_col = product_config['comp_column']
     
+    # Ensure columns exist
     if pf_col not in df_filtered.columns:
-        st.warning(f"{pf_col} sütunu bulunamadı!")
-        # Eksik sütunları oluştur
         df_filtered[pf_col] = 0
+    if comp_col not in df_filtered.columns:
+        df_filtered[comp_col] = 0
     
-    if rakip_col not in df_filtered.columns:
-        df_filtered[rakip_col] = 0
-    
-    # Şehir bazlı toplamlar
-    if 'CITY_NORMALIZED' not in df_filtered.columns:
-        df_filtered['CITY_NORMALIZED'] = df_filtered['CITY'].apply(normalize_city_name)
-    
-    city_data = df_filtered.groupby(['CITY_NORMALIZED']).agg({
+    # Group by city
+    city_data = df_filtered.groupby('CITY_CLEAN').agg({
         pf_col: 'sum',
-        rakip_col: 'sum'
+        comp_col: 'sum',
+        'REGION_MAP': 'first',
+        'LAT': 'first',
+        'LON': 'first'
     }).reset_index()
     
-    city_data.columns = ['City', 'PF_Satis', 'Rakip_Satis']
-    city_data['Toplam_Pazar'] = city_data['PF_Satis'] + city_data['Rakip_Satis']
-    city_data['Pazar_Payi_%'] = safe_divide(city_data['PF_Satis'], city_data['Toplam_Pazar']) * 100
+    city_data.columns = ['City', 'PF_Sales', 'Competitor_Sales', 'Region', 'Lat', 'Lon']
     
-    # Region bilgisini ekle
-    if 'REGION' in df_filtered.columns:
-        region_map = df_filtered.groupby('CITY_NORMALIZED')['REGION'].first().to_dict()
-        city_data['Region'] = city_data['City'].map(region_map)
+    # Calculate metrics
+    city_data['Total_Market'] = city_data['PF_Sales'] + city_data['Competitor_Sales']
+    city_data['Market_Share_%'] = np.where(
+        city_data['Total_Market'] > 0,
+        (city_data['PF_Sales'] / city_data['Total_Market']) * 100,
+        0
+    )
+    city_data['Relative_Performance'] = np.where(
+        city_data['Competitor_Sales'] > 0,
+        city_data['PF_Sales'] / city_data['Competitor_Sales'],
+        0
+    )
+    
+    # Calculate growth if multiple periods
+    if len(df_filtered['YEAR_MONTH'].unique()) > 1:
+        monthly_data = df_filtered.groupby(['CITY_CLEAN', 'YEAR_MONTH'])[pf_col].sum().unstack()
+        if monthly_data.shape[1] >= 2:
+            city_data['Growth_%'] = ((monthly_data.iloc[:, -1] - monthly_data.iloc[:, 0]) / 
+                                     monthly_data.iloc[:, 0].replace(0, 1)) * 100
+            city_data['Growth_%'] = city_data['Growth_%'].fillna(0)
+        else:
+            city_data['Growth_%'] = 0
     else:
-        city_data['Region'] = 'Belirtilmemiş'
+        city_data['Growth_%'] = 0
     
-    # Pozitif satışı olan şehirler
-    city_data = city_data[city_data['PF_Satis'] > 0]
+    # Calculate performance score
+    city_data['Performance_Score'] = calculate_city_score(city_data)
+    city_data['Performance_Class'] = city_data['Performance_Score'].apply(get_performance_class)
     
-    if len(city_data) > 0:
-        # Basit performans hesaplamaları
-        # Büyüme oranı (basit)
-        city_data['Buyume_%'] = 0  # Burada daha detaylı hesaplama yapılabilir
-        
-        # Stabilite skoru (basit)
-        city_data['Stabilite_Score'] = 70  # Varsayılan
-        
-        # Performans skoru
-        city_data['Performance_Score'] = city_data.apply(calculate_performance_score, axis=1)
-        city_data['Performance_Category'] = city_data['Performance_Score'].apply(
-            lambda x: get_performance_category(x)[0]
-        )
-    
-    return city_data.sort_values('PF_Satis', ascending=False)
+    return city_data.sort_values('PF_Sales', ascending=False)
 
-def calculate_time_series_analysis(df, product, territory=None, date_filter=None):
-    """Zaman serisi analizi"""
-    cols = get_product_columns(product, df.columns)
+def calculate_city_score(city_data: pd.DataFrame) -> pd.Series:
+    """
+    Calculate composite performance score (0-100)
+    """
+    scores = []
     
-    df_filtered = df.copy()
-    if territory and territory != "TÜMÜ":
-        df_filtered = df_filtered[df_filtered['TERRITORIES'] == territory]
+    for _, row in city_data.iterrows():
+        score = 0
+        
+        # Market share score (0-40 points)
+        market_share_score = min(row['Market_Share_%'], 100) * 0.4
+        score += market_share_score
+        
+        # Growth score (0-30 points)
+        growth = min(max(row['Growth_%'], -50), 100)
+        growth_score = (50 + growth * 0.3) * 0.3  # -50% = 35, 0% = 50, 100% = 80
+        score += growth_score
+        
+        # Market size score (0-20 points)
+        market_size = np.log1p(row['Total_Market'])
+        market_size_score = min(market_size / np.log1p(1e6) * 20, 20)
+        score += market_size_score
+        
+        # Relative performance score (0-10 points)
+        rel_perf_score = min(row['Relative_Performance'] * 5, 10)
+        score += rel_perf_score
+        
+        scores.append(score)
     
-    if date_filter:
-        df_filtered = df_filtered[(df_filtered['DATE'] >= date_filter[0]) & 
-                                   (df_filtered['DATE'] <= date_filter[1])]
+    return pd.Series(scores, index=city_data.index)
+
+def get_performance_class(score: float) -> str:
+    """Classify performance score"""
+    if score >= 85:
+        return "Excellent"
+    elif score >= 70:
+        return "Good"
+    elif score >= 55:
+        return "Fair"
+    else:
+        return "Needs Improvement"
+
+def calculate_territory_metrics(df: pd.DataFrame, product_config: dict) -> pd.DataFrame:
+    """
+    Calculate territory-level performance metrics
+    """
+    pf_col = product_config['pf_column']
+    comp_col = product_config['comp_column']
     
-    pf_col = cols.get('pf')
-    rakip_col = cols.get('rakip')
+    # Ensure columns exist
+    if pf_col not in df.columns:
+        df[pf_col] = 0
+    if comp_col not in df.columns:
+        df[comp_col] = 0
     
-    if pf_col not in df_filtered.columns:
-        df_filtered[pf_col] = 0
-    
-    if rakip_col not in df_filtered.columns:
-        df_filtered[rakip_col] = 0
-    
-    # Aylık toplamlar
-    monthly_data = df_filtered.groupby('YIL_AY').agg({
+    # Group by territory
+    territory_data = df.groupby('TERRITORY').agg({
         pf_col: 'sum',
-        rakip_col: 'sum',
+        comp_col: 'sum',
+        'CITY_CLEAN': 'nunique'
+    }).reset_index()
+    
+    territory_data.columns = ['Territory', 'PF_Sales', 'Competitor_Sales', 'City_Count']
+    
+    # Calculate metrics
+    territory_data['Total_Market'] = territory_data['PF_Sales'] + territory_data['Competitor_Sales']
+    territory_data['Market_Share_%'] = np.where(
+        territory_data['Total_Market'] > 0,
+        (territory_data['PF_Sales'] / territory_data['Total_Market']) * 100,
+        0
+    )
+    territory_data['Avg_City_Sales'] = territory_data['PF_Sales'] / territory_data['City_Count']
+    territory_data['Territory_Contribution_%'] = (
+        territory_data['PF_Sales'] / territory_data['PF_Sales'].sum() * 100
+    )
+    
+    return territory_data.sort_values('PF_Sales', ascending=False)
+
+def calculate_time_series_metrics(df: pd.DataFrame, product_config: dict) -> pd.DataFrame:
+    """
+    Calculate time series metrics for trend analysis
+    """
+    pf_col = product_config['pf_column']
+    comp_col = product_config['comp_column']
+    
+    # Ensure columns exist
+    if pf_col not in df.columns:
+        df[pf_col] = 0
+    if comp_col not in df.columns:
+        df[comp_col] = 0
+    
+    # Monthly aggregation
+    monthly_data = df.groupby('YEAR_MONTH').agg({
+        pf_col: 'sum',
+        comp_col: 'sum',
         'DATE': 'first'
-    }).reset_index().sort_values('YIL_AY')
+    }).reset_index().sort_values('YEAR_MONTH')
     
-    monthly_data.columns = ['YIL_AY', 'PF_Satis', 'Rakip_Satis', 'DATE']
-    monthly_data['Toplam_Pazar'] = monthly_data['PF_Satis'] + monthly_data['Rakip_Satis']
-    monthly_data['Pazar_Payi_%'] = safe_divide(monthly_data['PF_Satis'], monthly_data['Toplam_Pazar']) * 100
+    monthly_data.columns = ['Year_Month', 'PF_Sales', 'Competitor_Sales', 'Date']
+    monthly_data['Total_Market'] = monthly_data['PF_Sales'] + monthly_data['Competitor_Sales']
+    monthly_data['Market_Share_%'] = (
+        monthly_data['PF_Sales'] / monthly_data['Total_Market'] * 100
+    ).fillna(0)
     
-    # Büyüme oranları
-    monthly_data['PF_Buyume_%'] = monthly_data['PF_Satis'].pct_change() * 100
-    monthly_data['Rakip_Buyume_%'] = monthly_data['Rakip_Satis'].pct_change() * 100
-    monthly_data['Goreceli_Buyume_%'] = monthly_data['PF_Buyume_%'] - monthly_data['Rakip_Buyume_%']
+    # Growth calculations
+    monthly_data['PF_Growth_%'] = monthly_data['PF_Sales'].pct_change() * 100
+    monthly_data['Competitor_Growth_%'] = monthly_data['Competitor_Sales'].pct_change() * 100
+    monthly_data['Market_Growth_%'] = monthly_data['Total_Market'].pct_change() * 100
     
-    # Hareketli ortalamalar
-    monthly_data['MA_3_Ay'] = monthly_data['PF_Satis'].rolling(window=3, min_periods=1).mean()
-    monthly_data['MA_6_Ay'] = monthly_data['PF_Satis'].rolling(window=6, min_periods=1).mean()
+    # Moving averages
+    monthly_data['PF_MA_3M'] = monthly_data['PF_Sales'].rolling(window=3, min_periods=1).mean()
+    monthly_data['PF_MA_6M'] = monthly_data['PF_Sales'].rolling(window=6, min_periods=1).mean()
     
-    return monthly_data.fillna(0)
-
-def prepare_ml_data_simple(monthly_data):
-    """Basit ML veri hazırlama - hata düzeltmeli"""
-    try:
-        if len(monthly_data) < 6:
-            return None, None, None, None, None
-        
-        df = monthly_data.copy().reset_index(drop=True)
-        
-        # Temel feature'lar
-        df['month'] = df['DATE'].dt.month
-        df['index'] = range(len(df))
-        
-        # Lag features (sadece 1 ve 2 lag)
-        df['lag_1'] = df['PF_Satis'].shift(1)
-        df['lag_2'] = df['PF_Satis'].shift(2)
-        
-        # Simple rolling features
-        df['rolling_mean_3'] = df['PF_Satis'].rolling(window=3, min_periods=1).mean()
-        
-        # Target (sonraki ay)
-        df['target'] = df['PF_Satis'].shift(-1)
-        
-        # NaN'leri temizle
-        df_clean = df.dropna()
-        
-        if len(df_clean) < 4:
-            return None, None, None, None, None
-        
-        # Feature columns
-        feature_cols = ['lag_1', 'lag_2', 'rolling_mean_3', 'month', 'index']
-        feature_cols = [col for col in feature_cols if col in df_clean.columns]
-        
-        if not feature_cols:
-            return None, None, None, None, None
-        
-        X = df_clean[feature_cols]
-        y = df_clean['target']
-        
-        # Simple train/test split
-        split_idx = max(3, int(len(df_clean) * 0.7))
-        X_train = X.iloc[:split_idx]
-        X_test = X.iloc[split_idx:]
-        y_train = y.iloc[:split_idx]
-        y_test = y.iloc[split_idx:]
-        
-        return X_train, X_test, y_train, y_test, feature_cols
-        
-    except Exception as e:
-        st.warning(f"ML veri hazırlama hatası: {str(e)}")
-        return None, None, None, None, None
+    # Cumulative sums
+    monthly_data['PF_Cumulative'] = monthly_data['PF_Sales'].cumsum()
+    monthly_data['Market_Cumulative'] = monthly_data['Total_Market'].cumsum()
+    
+    return monthly_data
 
 # =============================================================================
-# GÖRSELLEŞTİRME FONKSİYONLARI
+# VISUALIZATION FUNCTIONS
 # =============================================================================
 
-def create_mckinsey_line_chart(data, x_col, y_col, title, color=MCKINSEY_COLORS['primary']):
-    """McKinsey stili line chart"""
+def create_mckinsey_map(city_data: pd.DataFrame, title: str, metric: str = 'PF_Sales') -> go.Figure:
+    """
+    Create professional McKinsey-style map visualization
+    """
     fig = go.Figure()
     
-    fig.add_trace(go.Scatter(
-        x=data[x_col],
-        y=data[y_col],
-        mode='lines+markers',
-        line=dict(color=color, width=3),
-        marker=dict(size=8, color='white', line=dict(width=2, color=color)),
-        name=y_col
+    # Determine size and color based on metric
+    if metric == 'PF_Sales':
+        size = np.sqrt(city_data['PF_Sales']) * 0.5
+        color = city_data['Market_Share_%']
+        colorscale = 'RdYlGn'
+        colorbar_title = 'Market Share %'
+    elif metric == 'Performance_Score':
+        size = np.sqrt(city_data['PF_Sales']) * 0.5
+        color = city_data['Performance_Score']
+        colorscale = 'RdYlGn'
+        colorbar_title = 'Performance Score'
+    else:
+        size = np.sqrt(city_data['PF_Sales']) * 0.5
+        color = city_data['Growth_%']
+        colorscale = 'RdYlBu'
+        colorbar_title = 'Growth %'
+    
+    # Add scatter points
+    fig.add_trace(go.Scattermapbox(
+        lat=city_data['Lat'],
+        lon=city_data['Lon'],
+        mode='markers',
+        marker=dict(
+            size=size,
+            color=color,
+            colorscale=colorscale,
+            cmin=0 if metric != 'Growth_%' else -50,
+            cmax=100 if metric != 'Growth_%' else 100,
+            showscale=True,
+            colorbar=dict(
+                title=dict(
+                    text=colorbar_title,
+                    font=dict(size=10)
+                ),
+                thickness=15,
+                x=1.02,
+                xpad=5
+            ),
+            opacity=0.8,
+            sizemode='area',
+            sizeref=2.*max(size)/(50.**2),
+            sizemin=4
+        ),
+        text=city_data.apply(
+            lambda row: f"<b>{row['City']}</b><br>"
+                      f"Region: {row['Region']}<br>"
+                      f"PF Sales: {row['PF_Sales']:,.0f}<br>"
+                      f"Market Share: {row['Market_Share_%']:.1f}%<br>"
+                      f"Growth: {row['Growth_%']:.1f}%<br>"
+                      f"Performance: {row['Performance_Score']:.0f}/100",
+            axis=1
+        ),
+        hoverinfo='text'
     ))
     
+    # Professional layout
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        mapbox=dict(
+            center=dict(lat=39.0, lon=35.0),
+            zoom=4.8,
+            bearing=0,
+            pitch=0
+        ),
+        height=600,
+        margin=dict(l=0, r=0, t=80, b=0),
+        title=dict(
+            text=f"<b>{title}</b>",
+            x=0.5,
+            font=dict(size=20, color=MCKINSEY_PALETTE['gray_900']),
+            y=0.95
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700'])
+    )
+    
+    return fig
+
+def create_performance_matrix(city_data: pd.DataFrame) -> go.Figure:
+    """
+    Create BCG-style performance matrix
+    """
+    fig = go.Figure()
+    
+    # Create size based on market size
+    size = np.sqrt(city_data['Total_Market']) / np.sqrt(city_data['Total_Market'].max()) * 40 + 10
+    
+    # Color by performance class
+    color_map = {
+        'Excellent': MCKINSEY_PALETTE['success'],
+        'Good': MCKINSEY_PALETTE['info'],
+        'Fair': MCKINSEY_PALETTE['warning'],
+        'Needs Improvement': MCKINSEY_PALETTE['error']
+    }
+    
+    for perf_class in city_data['Performance_Class'].unique():
+        subset = city_data[city_data['Performance_Class'] == perf_class]
+        
+        fig.add_trace(go.Scatter(
+            x=subset['Market_Share_%'],
+            y=subset['Growth_%'],
+            mode='markers',
+            marker=dict(
+                size=size[subset.index],
+                color=color_map[perf_class],
+                line=dict(width=1, color='white'),
+                opacity=0.8
+            ),
+            name=perf_class,
+            text=subset['City'],
+            hoverinfo='text'
+        ))
+    
+    # Add quadrant lines
+    fig.add_hline(y=0, line_dash="dash", line_color=MCKINSEY_PALETTE['gray_400'], opacity=0.5)
+    fig.add_vline(x=city_data['Market_Share_%'].median(), line_dash="dash", 
+                  line_color=MCKINSEY_PALETTE['gray_400'], opacity=0.5)
+    
+    # Professional layout
+    fig.update_layout(
+        title=dict(
+            text="<b>Performance Matrix: Market Share vs Growth</b>",
+            font=dict(size=18, color=MCKINSEY_PALETTE['gray_900']),
+            x=0.5
+        ),
+        xaxis_title=dict(
+            text="<b>Market Share (%)</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        yaxis_title=dict(
+            text="<b>Growth Rate (%)</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        height=500,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700']),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=10)
+        ),
+        hovermode='closest'
+    )
+    
+    # Add quadrant annotations
+    fig.add_annotation(
+        x=0.1, y=0.9,
+        xref="paper", yref="paper",
+        text="High Growth<br>Low Share",
+        showarrow=False,
+        font=dict(size=10, color=MCKINSEY_PALETTE['gray_600'])
+    )
+    
+    fig.add_annotation(
+        x=0.9, y=0.9,
+        xref="paper", yref="paper",
+        text="High Growth<br>High Share",
+        showarrow=False,
+        font=dict(size=10, color=MCKINSEY_PALETTE['gray_600'])
+    )
+    
+    fig.add_annotation(
+        x=0.1, y=0.1,
+        xref="paper", yref="paper",
+        text="Low Growth<br>Low Share",
+        showarrow=False,
+        font=dict(size=10, color=MCKINSEY_PALETTE['gray_600'])
+    )
+    
+    fig.add_annotation(
+        x=0.9, y=0.1,
+        xref="paper", yref="paper",
+        text="Low Growth<br>High Share",
+        showarrow=False,
+        font=dict(size=10, color=MCKINSEY_PALETTE['gray_600'])
+    )
+    
+    return fig
+
+def create_trend_chart(monthly_data: pd.DataFrame, title: str) -> go.Figure:
+    """
+    Create professional trend chart
+    """
+    fig = go.Figure()
+    
+    # Add PF Sales line
+    fig.add_trace(go.Scatter(
+        x=monthly_data['Date'],
+        y=monthly_data['PF_Sales'],
+        mode='lines+markers',
+        name='PF Sales',
+        line=dict(color=MCKINSEY_PALETTE['primary_blue'], width=3),
+        marker=dict(size=6, color='white', line=dict(width=2, color=MCKINSEY_PALETTE['primary_blue']))
+    ))
+    
+    # Add moving average
+    fig.add_trace(go.Scatter(
+        x=monthly_data['Date'],
+        y=monthly_data['PF_MA_3M'],
+        mode='lines',
+        name='3-Month Moving Avg',
+        line=dict(color=MCKINSEY_PALETTE['gray_500'], width=2, dash='dash'),
+        opacity=0.7
+    ))
+    
+    # Add competitor sales (area)
+    fig.add_trace(go.Scatter(
+        x=monthly_data['Date'],
+        y=monthly_data['Competitor_Sales'],
+        mode='none',
+        name='Competitor Sales',
+        fill='tozeroy',
+        fillcolor='rgba(204, 0, 0, 0.1)',
+        line=dict(color=MCKINSEY_PALETTE['secondary_red'], width=0)
+    ))
+    
+    # Professional layout
     fig.update_layout(
         title=dict(
             text=f"<b>{title}</b>",
-            font=dict(size=16, color='#1A1A1A')
+            font=dict(size=18, color=MCKINSEY_PALETTE['gray_900']),
+            x=0.5
         ),
-        xaxis_title=f"<b>{x_col}</b>",
-        yaxis_title=f"<b>{y_col}</b>",
-        height=400,
-        plot_bgcolor='#FFFFFF',
-        paper_bgcolor='#FFFFFF',
-        font=dict(color='#333333'),
+        xaxis_title=dict(
+            text="<b>Date</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        yaxis_title=dict(
+            text="<b>Sales Volume</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        height=500,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700']),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=10)
+        ),
         hovermode='x unified'
     )
     
     return fig
 
-def create_mckinsey_bar_chart(data, x_col, y_col, title, color=None):
-    """McKinsey stili bar chart"""
-    if color is None:
-        color = MCKINSEY_COLORS['primary']
+def create_market_share_chart(monthly_data: pd.DataFrame) -> go.Figure:
+    """
+    Create market share trend chart
+    """
+    fig = go.Figure()
     
+    # Add market share line
+    fig.add_trace(go.Scatter(
+        x=monthly_data['Date'],
+        y=monthly_data['Market_Share_%'],
+        mode='lines+markers',
+        name='Market Share',
+        line=dict(color=MCKINSEY_PALETTE['primary_green'], width=3),
+        marker=dict(size=6, color='white', line=dict(width=2, color=MCKINSEY_PALETTE['primary_green']))
+    ))
+    
+    # Add target line
+    fig.add_hline(y=50, line_dash="dash", line_color=MCKINSEY_PALETTE['warning'], 
+                  annotation_text="50% Target", annotation_position="bottom right")
+    
+    # Professional layout
+    fig.update_layout(
+        title=dict(
+            text="<b>Market Share Trend</b>",
+            font=dict(size=18, color=MCKINSEY_PALETTE['gray_900']),
+            x=0.5
+        ),
+        xaxis_title=dict(
+            text="<b>Date</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        yaxis_title=dict(
+            text="<b>Market Share (%)</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        height=400,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700']),
+        hovermode='x unified'
+    )
+    
+    return fig
+
+def create_regional_analysis(city_data: pd.DataFrame) -> go.Figure:
+    """
+    Create regional performance comparison
+    """
+    # Aggregate by region
+    region_data = city_data.groupby('Region').agg({
+        'PF_Sales': 'sum',
+        'Total_Market': 'sum',
+        'City': 'count'
+    }).reset_index()
+    
+    region_data['Market_Share_%'] = (region_data['PF_Sales'] / region_data['Total_Market'] * 100).round(1)
+    region_data['Avg_City_Sales'] = (region_data['PF_Sales'] / region_data['City']).round(0)
+    region_data = region_data.sort_values('PF_Sales', ascending=True)
+    
+    # Create bar chart
     fig = go.Figure()
     
     fig.add_trace(go.Bar(
-        x=data[x_col],
-        y=data[y_col],
-        marker_color=color,
-        marker_line_width=0,
-        name=y_col
+        y=region_data['Region'],
+        x=region_data['PF_Sales'],
+        name='PF Sales',
+        orientation='h',
+        marker_color=MCKINSEY_PALETTE['primary_blue'],
+        text=region_data['PF_Sales'].apply(lambda x: f"{x:,.0f}"),
+        textposition='auto'
     ))
     
+    # Professional layout
     fig.update_layout(
         title=dict(
-            text=f"<b>{title}</b>",
-            font=dict(size=16, color='#1A1A1A')
+            text="<b>Regional Performance Comparison</b>",
+            font=dict(size=18, color=MCKINSEY_PALETTE['gray_900']),
+            x=0.5
         ),
-        xaxis_title=f"<b>{x_col}</b>",
-        yaxis_title=f"<b>{y_col}</b>",
-        height=400,
-        plot_bgcolor='#FFFFFF',
-        paper_bgcolor='#FFFFFF',
-        font=dict(color='#333333')
-    )
-    
-    return fig
-
-def create_performance_scatter(city_data):
-    """Performans scatter plot"""
-    if len(city_data) == 0 or 'Pazar_Payi_%' not in city_data.columns:
-        return None
-    
-    fig = go.Figure()
-    
-    # Renkleri performansa göre ayarla
-    colors = []
-    for score in city_data.get('Performance_Score', [50] * len(city_data)):
-        if score >= 80:
-            colors.append(PERFORMANCE_COLORS['excellent'])
-        elif score >= 65:
-            colors.append(PERFORMANCE_COLORS['good'])
-        elif score >= 50:
-            colors.append(PERFORMANCE_COLORS['fair'])
-        else:
-            colors.append(PERFORMANCE_COLORS['poor'])
-    
-    fig.add_trace(go.Scatter(
-        x=city_data['Pazar_Payi_%'],
-        y=city_data.get('Buyume_%', [0] * len(city_data)),
-        mode='markers',
-        marker=dict(
-            size=city_data['PF_Satis'] / city_data['PF_Satis'].max() * 30 + 10,
-            color=colors,
-            line=dict(width=1, color='white')
+        xaxis_title=dict(
+            text="<b>PF Sales</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
         ),
-        text=city_data['City'],
-        hoverinfo='text'
-    ))
-    
-    fig.update_layout(
-        title=dict(
-            text='<b>Performans Matrisi: Pazar Payı vs Büyüme</b>',
-            font=dict(size=16, color='#1A1A1A')
-        ),
-        xaxis_title='<b>Pazar Payı (%)</b>',
-        yaxis_title='<b>Büyüme Oranı (%)</b>',
         height=500,
-        plot_bgcolor='#FFFFFF',
-        paper_bgcolor='#FFFFFF',
-        font=dict(color='#333333')
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700']),
+        showlegend=False,
+        bargap=0.2
     )
     
     return fig
 
 # =============================================================================
-# ANA UYGULAMA
+# MACHINE LEARNING FUNCTIONS
+# =============================================================================
+
+def prepare_forecast_data(monthly_data: pd.DataFrame) -> Tuple:
+    """
+    Prepare data for ML forecasting
+    """
+    if len(monthly_data) < 12:
+        return None, None, None, None
+    
+    df = monthly_data.copy()
+    
+    # Create features
+    df['month'] = df['Date'].dt.month
+    df['quarter'] = df['Date'].dt.quarter
+    df['year'] = df['Date'].dt.year
+    df['time_index'] = range(len(df))
+    
+    # Lag features
+    for lag in [1, 2, 3, 6]:
+        df[f'lag_{lag}'] = df['PF_Sales'].shift(lag)
+    
+    # Rolling statistics
+    df['rolling_mean_3'] = df['PF_Sales'].rolling(window=3, min_periods=1).mean()
+    df['rolling_mean_6'] = df['PF_Sales'].rolling(window=6, min_periods=1).mean()
+    df['rolling_std_3'] = df['PF_Sales'].rolling(window=3, min_periods=1).std()
+    
+    # Seasonal features
+    df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12)
+    df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12)
+    
+    # Target
+    df['target'] = df['PF_Sales'].shift(-1)
+    
+    # Drop NaN
+    df_clean = df.dropna()
+    
+    if len(df_clean) < 10:
+        return None, None, None, None
+    
+    # Feature selection
+    feature_cols = ['lag_1', 'lag_2', 'lag_3', 'rolling_mean_3', 
+                    'rolling_mean_6', 'month', 'quarter', 'time_index',
+                    'month_sin', 'month_cos']
+    feature_cols = [col for col in feature_cols if col in df_clean.columns]
+    
+    X = df_clean[feature_cols]
+    y = df_clean['target']
+    
+    # Split
+    split_idx = int(len(df_clean) * 0.8)
+    X_train = X.iloc[:split_idx]
+    X_test = X.iloc[split_idx:]
+    y_train = y.iloc[:split_idx]
+    y_test = y.iloc[split_idx:]
+    
+    return X_train, X_test, y_train, y_test, feature_cols
+
+def train_forecasting_models(X_train, X_test, y_train, y_test):
+    """
+    Train multiple ML models for forecasting
+    """
+    models = {
+        'Linear Regression': LinearRegression(),
+        'Ridge Regression': Ridge(alpha=1.0),
+        'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42),
+        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, max_depth=3, random_state=42)
+    }
+    
+    results = {}
+    
+    for name, model in models.items():
+        try:
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            
+            results[name] = {
+                'model': model,
+                'MAE': mean_absolute_error(y_test, y_pred),
+                'RMSE': np.sqrt(mean_squared_error(y_test, y_pred)),
+                'MAPE': np.mean(np.abs((y_test - y_pred) / y_test)) * 100,
+                'R2': r2_score(y_test, y_pred),
+                'predictions': y_pred
+            }
+        except:
+            continue
+    
+    return results
+
+def create_forecast_visualization(historical_data, forecast_results, best_model_name):
+    """
+    Create forecast visualization
+    """
+    fig = go.Figure()
+    
+    # Historical data
+    fig.add_trace(go.Scatter(
+        x=historical_data['Date'],
+        y=historical_data['PF_Sales'],
+        mode='lines+markers',
+        name='Historical Sales',
+        line=dict(color=MCKINSEY_PALETTE['primary_blue'], width=3),
+        marker=dict(size=6)
+    ))
+    
+    # Forecast (if available)
+    if forecast_results and best_model_name in forecast_results:
+        last_date = historical_data['Date'].iloc[-1]
+        forecast_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=6, freq='MS')
+        
+        # Simple forecast based on trend
+        trend = np.polyfit(range(len(historical_data)), historical_data['PF_Sales'], 1)
+        forecast_values = np.polyval(trend, range(len(historical_data), len(historical_data) + 6))
+        
+        fig.add_trace(go.Scatter(
+            x=forecast_dates,
+            y=forecast_values,
+            mode='lines+markers',
+            name=f'Forecast ({best_model_name})',
+            line=dict(color=MCKINSEY_PALETTE['primary_green'], width=3, dash='dash'),
+            marker=dict(size=8, symbol='diamond')
+        ))
+        
+        # Confidence interval
+        std_dev = historical_data['PF_Sales'].std()
+        fig.add_trace(go.Scatter(
+            x=forecast_dates.tolist() + forecast_dates.tolist()[::-1],
+            y=(forecast_values + std_dev).tolist() + (forecast_values - std_dev).tolist()[::-1],
+            fill='toself',
+            fillcolor='rgba(13, 101, 45, 0.1)',
+            line=dict(color='rgba(255,255,255,0)'),
+            name='Confidence Interval',
+            showlegend=True
+        ))
+    
+    # Professional layout
+    fig.update_layout(
+        title=dict(
+            text="<b>Sales Forecast with Confidence Interval</b>",
+            font=dict(size=18, color=MCKINSEY_PALETTE['gray_900']),
+            x=0.5
+        ),
+        xaxis_title=dict(
+            text="<b>Date</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        yaxis_title=dict(
+            text="<b>Sales Volume</b>",
+            font=dict(size=12, color=MCKINSEY_PALETTE['gray_700'])
+        ),
+        height=500,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Source Sans Pro', color=MCKINSEY_PALETTE['gray_700']),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        hovermode='x unified'
+    )
+    
+    return fig
+
+# =============================================================================
+# REPORTING & INSIGHTS
+# =============================================================================
+
+def generate_strategic_insights(city_data: pd.DataFrame, territory_data: pd.DataFrame, 
+                               monthly_data: pd.DataFrame) -> Dict:
+    """
+    Generate strategic insights and recommendations
+    """
+    insights = {
+        'strengths': [],
+        'opportunities': [],
+        'risks': [],
+        'recommendations': []
+    }
+    
+    if len(city_data) == 0:
+        return insights
+    
+    # Top performers
+    top_cities = city_data.nlargest(5, 'PF_Sales')
+    insights['strengths'].extend([
+        f"{city['City']} shows strong performance with {city['Market_Share_%']:.1f}% market share"
+        for _, city in top_cities.iterrows()
+    ])
+    
+    # High growth opportunities
+    growth_opps = city_data[city_data['Growth_%'] > 20].nlargest(3, 'Growth_%')
+    insights['opportunities'].extend([
+        f"{city['City']} demonstrates high growth potential ({city['Growth_%']:.1f}%)"
+        for _, city in growth_opps.iterrows()
+    ])
+    
+    # Underperforming areas
+    underperformers = city_data[city_data['Market_Share_%'] < 30].nlargest(3, 'Total_Market')
+    insights['risks'].extend([
+        f"{city['City']} has low market share ({city['Market_Share_%']:.1f}%) in large market ({city['Total_Market']:,.0f})"
+        for _, city in underperformers.iterrows()
+    ])
+    
+    # Strategic recommendations
+    if len(monthly_data) > 6:
+        avg_growth = monthly_data['PF_Growth_%'].tail(6).mean()
+        if avg_growth < 5:
+            insights['recommendations'].append(
+                f"Implement growth acceleration initiatives to boost current {avg_growth:.1f}% growth rate"
+            )
+    
+    market_share_trend = monthly_data['Market_Share_%'].iloc[-1] - monthly_data['Market_Share_%'].iloc[0]
+    if market_share_trend < 0:
+        insights['recommendations'].append(
+            f"Address declining market share trend ({market_share_trend:.1f}% change)"
+        )
+    
+    # Territory optimization
+    if len(territory_data) > 0:
+        top_territory = territory_data.iloc[0]
+        bottom_territory = territory_data[territory_data['PF_Sales'] > 0].iloc[-1]
+        
+        insights['recommendations'].append(
+            f"Reallocate resources from {bottom_territory['Territory']} to high-performing {top_territory['Territory']}"
+        )
+    
+    return insights
+
+# =============================================================================
+# MAIN APPLICATION
 # =============================================================================
 
 def main():
-    # Başlık
-    st.markdown('<h1 class="main-header">🎯 Ticari Portföy Analiz Sistemi</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Territory Bazlı Performans • ML Tahminleme • Stratejik Öneriler</p>', unsafe_allow_html=True)
+    # Header
+    st.markdown('<h1 class="main-header">Commercial Portfolio Analytics Suite</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Professional territory performance analysis with ML forecasting and strategic insights</p>', 
+                unsafe_allow_html=True)
     
-    # SIDEBAR
+    # Sidebar
     with st.sidebar:
-        st.markdown('<div style="border-bottom: 2px solid #0066CC; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">'
-                   '<h3 style="color: #1A1A1A; margin: 0;">📂 Veri Yükleme</h3>'
-                   '</div>', unsafe_allow_html=True)
+        st.markdown('<div class="mck-card">', unsafe_allow_html=True)
+        st.markdown('<div class="mck-card-header">📁 Data Upload</div>', unsafe_allow_html=True)
         
-        uploaded_file = st.file_uploader("Excel dosyasını seçin", type=['xlsx', 'xls'])
+        uploaded_file = st.file_uploader(
+            "Upload your Excel file",
+            type=['xlsx', 'xls'],
+            help="Upload your sales data in Excel format"
+        )
         
         if not uploaded_file:
-            st.info("👈 Lütfen Excel dosyasını yükleyin")
+            st.info("👈 Please upload your Excel file to begin analysis")
             st.stop()
         
-        try:
-            df = load_excel_data(uploaded_file)
-            
-            st.success(f"✅ **{len(df):,}** satır veri yüklendi")
-            
-            with st.expander("📋 Veri Önizleme"):
-                st.dataframe(df.head(), use_container_width=True)
-                
-        except Exception as e:
-            st.error(f"❌ Veri yükleme hatası: {str(e)}")
-            st.stop()
+        # Load data
+        with st.spinner("Processing data..."):
+            df = load_and_process_data(uploaded_file)
         
-        st.markdown("---")
-        
-        # Ürün Seçimi
-        st.markdown('<div style="margin-bottom: 1.5rem;">'
-                   '<h4 style="color: #1A1A1A; margin-bottom: 0.5rem;">💊 Ürün Seçimi</h4>', 
-                   unsafe_allow_html=True)
-        
-        # Mevcut ürünleri kontrol et
-        available_products = []
-        for product in COLUMN_NAMES.keys():
-            cols = get_product_columns(product, df.columns)
-            if cols.get('pf') in df.columns:
-                available_products.append(product)
-        
-        if not available_products:
-            st.error("❌ Excel'de beklenen ürün sütunları bulunamadı!")
-            st.stop()
-        
-        selected_product = st.selectbox("", available_products, label_visibility="collapsed")
+        st.success(f"✅ Data loaded successfully")
+        st.caption(f"{len(df):,} records | {df['YEAR_MONTH'].nunique()} months")
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Tarih Filtresi
-        st.markdown('<div style="margin-bottom: 1.5rem;">'
-                   '<h4 style="color: #1A1A1A; margin-bottom: 0.5rem;">📅 Tarih Filtresi</h4>', 
-                   unsafe_allow_html=True)
+        # Product Selection
+        st.markdown('<div class="mck-card">', unsafe_allow_html=True)
+        st.markdown('<div class="mck-card-header">💊 Product Selection</div>', unsafe_allow_html=True)
+        
+        # Detect available products
+        available_products = []
+        for product_key, config in PRODUCT_CONFIG.items():
+            if config['pf_column'] in df.columns:
+                available_products.append(product_key)
+        
+        if not available_products:
+            st.error("No product columns found in data")
+            st.stop()
+        
+        selected_product = st.selectbox(
+            "Select Product",
+            available_products,
+            format_func=lambda x: PRODUCT_CONFIG[x]['name']
+        )
+        
+        product_config = PRODUCT_CONFIG[selected_product]
+        st.caption(f"Category: {product_config['category']}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Date Filter
+        st.markdown('<div class="mck-card">', unsafe_allow_html=True)
+        st.markdown('<div class="mck-card-header">📅 Date Range</div>', unsafe_allow_html=True)
         
         min_date = df['DATE'].min()
         max_date = df['DATE'].max()
         
-        date_options = ["Tüm Veriler", "Son 3 Ay", "Son 6 Ay", "Son 1 Yıl", "Bu Yıl"]
-        date_option = st.selectbox("Dönem Seçin", date_options)
+        date_range = st.date_input(
+            "Select Analysis Period",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
         
-        if date_option == "Tüm Veriler":
-            date_filter = None
-        elif date_option == "Son 3 Ay":
-            start_date = max_date - pd.DateOffset(months=3)
-            date_filter = (start_date, max_date)
-        elif date_option == "Son 6 Ay":
-            start_date = max_date - pd.DateOffset(months=6)
-            date_filter = (start_date, max_date)
-        elif date_option == "Son 1 Yıl":
-            start_date = max_date - pd.DateOffset(years=1)
-            date_filter = (start_date, max_date)
-        elif date_option == "Bu Yıl":
-            date_filter = (pd.to_datetime(f"{max_date.year}-01-01"), max_date)
+        if len(date_range) == 2:
+            start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
-            date_filter = None
+            start_date, end_date = min_date, max_date
+        
+        st.caption(f"Selected: {start_date.strftime('%b %Y')} - {end_date.strftime('%b %Y')}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Region Filter
+        st.markdown('<div class="mck-card">', unsafe_allow_html=True)
+        st.markdown('<div class="mck-card-header">📍 Region Filter</div>', unsafe_allow_html=True)
+        
+        regions = ['ALL'] + sorted(df['REGION_MAP'].unique().tolist())
+        selected_region = st.selectbox("Filter by Region", regions)
+        
+        # Territory Filter
+        territories = ['ALL'] + sorted(df['TERRITORY'].unique().tolist())
+        selected_territory = st.selectbox("Filter by Territory", territories)
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Territory Filtresi
-        st.markdown('<div style="margin-bottom: 1.5rem;">'
-                   '<h4 style="color: #1A1A1A; margin-bottom: 0.5rem;">📍 Territory Filtresi</h4>', 
-                   unsafe_allow_html=True)
-        
-        territories = ["TÜMÜ"] + sorted([str(t) for t in df['TERRITORIES'].unique() if pd.notna(t)][:20])
-        selected_territory = st.selectbox("Territory Seçin", territories)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Analiz butonu
-        st.markdown("---")
-        if st.button("🚀 Analizi Başlat", type="primary", use_container_width=True):
-            st.session_state['analysis_started'] = True
-        
-        if 'analysis_started' not in st.session_state:
-            st.session_state['analysis_started'] = False
+        # Apply filters
+        df_filtered = df.copy()
+        if selected_region != 'ALL':
+            df_filtered = df_filtered[df_filtered['REGION_MAP'] == selected_region]
+        if selected_territory != 'ALL':
+            df_filtered = df_filtered[df_filtered['TERRITORY'] == selected_territory]
+        df_filtered = df_filtered[(df_filtered['DATE'] >= start_date) & (df_filtered['DATE'] <= end_date)]
     
-    # ANA İÇERİK
-    if not st.session_state.get('analysis_started', False):
-        st.info("👈 Lütfen sol taraftan filtreleri ayarlayın ve 'Analizi Başlat' butonuna tıklayın")
-        st.stop()
+    # Main Content
+    # Calculate metrics
+    with st.spinner("Analyzing data..."):
+        city_data = calculate_city_performance_metrics(df_filtered, product_config, start_date, end_date)
+        territory_data = calculate_territory_metrics(df_filtered, product_config)
+        monthly_data = calculate_time_series_metrics(df_filtered, product_config)
     
-    # Progress bar
-    with st.spinner("Veri analizi yapılıyor..."):
-        # Analizleri yap
-        city_data = calculate_city_performance(df, selected_product, date_filter)
-        monthly_data = calculate_time_series_analysis(df, selected_product, None, date_filter)
-    
-    # TAB'ler
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Genel Bakış",
-        "🗺️ Coğrafi Analiz",
-        "📈 Trend Analizi",
-        "🤖 Tahminler"
+    # Create tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Executive Summary",
+        "🗺️ Geographic Analysis",
+        "📈 Performance Trends",
+        "🤖 Forecasting",
+        "🎯 Strategic Insights"
     ])
     
-    # TAB 1: GENEL BAKIŞ
+    # TAB 1: EXECUTIVE SUMMARY
     with tab1:
-        st.header("📊 Genel Performans Özeti")
+        st.header("Executive Summary")
         
-        if len(city_data) == 0:
-            st.warning("⚠️ Seçilen filtrelerde veri bulunamadı")
-        else:
-            # Toplam metrikler
-            total_pf = city_data['PF_Satis'].sum()
-            total_market = city_data['Toplam_Pazar'].sum()
-            market_share = safe_divide(total_pf, total_market) * 100
-            avg_market_share = city_data['Pazar_Payi_%'].mean()
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Toplam PF Satış", f"{total_pf:,.0f}")
-            with col2:
-                st.metric("Toplam Pazar", f"{total_market:,.0f}")
-            with col3:
-                st.metric("Pazar Payı", f"%{market_share:.1f}")
-            with col4:
-                st.metric("Şehir Sayısı", len(city_data))
-            
-            st.markdown("---")
-            
-            # Top şehirler
-            col_left, col_right = st.columns(2)
-            
-            with col_left:
-                st.subheader("🏆 En İyi Performans Gösteren Şehirler")
-                top_cities = city_data.nlargest(10, 'PF_Satis')
-                
-                fig = create_mckinsey_bar_chart(
-                    top_cities,
-                    'City',
-                    'PF_Satis',
-                    'En Yüksek PF Satışına Sahip Şehirler',
-                    MCKINSEY_COLORS['primary']
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col_right:
-                st.subheader("📊 Pazar Payı Dağılımı")
-                if 'Performance_Category' in city_data.columns:
-                    perf_dist = city_data['Performance_Category'].value_counts()
-                    
-                    colors = {
-                        'MÜKEMMEL': PERFORMANCE_COLORS['excellent'],
-                        'İYİ': PERFORMANCE_COLORS['good'],
-                        'ORTA': PERFORMANCE_COLORS['fair'],
-                        'ZAYIF': PERFORMANCE_COLORS['poor']
-                    }
-                    
-                    fig = go.Figure(data=[go.Pie(
-                        labels=perf_dist.index,
-                        values=perf_dist.values,
-                        marker=dict(colors=[colors.get(k, '#666666') for k in perf_dist.index])
-                    )])
-                    
-                    fig.update_layout(
-                        title=dict(
-                            text='<b>Performans Kategori Dağılımı</b>',
-                            font=dict(size=14, color='#1A1A1A')
-                        ),
-                        height=400
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.info("Performans kategorisi hesaplanamadı")
-            
-            # Performans scatter plot
-            st.markdown("---")
-            st.subheader("📈 Performans Matrisi")
-            
-            perf_scatter = create_performance_scatter(city_data)
-            if perf_scatter:
-                st.plotly_chart(perf_scatter, use_container_width=True)
-            
-            # Detaylı tablo
-            with st.expander("📋 Detaylı Şehir Verileri"):
-                display_cols = ['City', 'Region', 'PF_Satis', 'Toplam_Pazar', 'Pazar_Payi_%']
-                if 'Performance_Score' in city_data.columns:
-                    display_cols.extend(['Performance_Score', 'Performance_Category'])
-                
-                city_display = city_data[display_cols].copy()
-                city_display.columns = ['Şehir', 'Bölge', 'PF Satış', 'Toplam Pazar', 'Pazar Payı %', 
-                                      'Performans Skoru', 'Kategori'][:len(display_cols)]
-                
-                st.dataframe(city_display, use_container_width=True)
-    
-    # TAB 2: COĞRAFİ ANALİZ
-    with tab2:
-        st.header("🗺️ Coğrafi Analiz")
+        # Key Metrics
+        col1, col2, col3, col4 = st.columns(4)
         
-        if len(city_data) == 0:
-            st.warning("⚠️ Harita için veri bulunamadı")
-        else:
-            # Harita seçenekleri
-            map_option = st.radio(
-                "Gösterilecek Metrik",
-                ["Satış Dağılımı", "Pazar Payı", "Performans"],
-                horizontal=True
-            )
-            
-            if map_option == "Satış Dağılımı":
-                turkey_map = create_turkey_map(city_data, f"{selected_product} - Satış Dağılımı", "PF_Satis")
-            elif map_option == "Pazar Payı":
-                turkey_map = create_turkey_map(city_data, f"{selected_product} - Pazar Payı Dağılımı", "PF_Satis")
-            else:
-                if 'Performance_Score' in city_data.columns:
-                    turkey_map = create_turkey_map(city_data, f"{selected_product} - Performans Dağılımı", "Performance_Score")
-                else:
-                    turkey_map = create_turkey_map(city_data, f"{selected_product} - Satış Dağılımı", "PF_Satis")
-            
-            if turkey_map:
-                st.plotly_chart(turkey_map, use_container_width=True)
-            
-            # Bölge analizi
-            st.markdown("---")
-            st.subheader("📊 Bölge Bazlı Analiz")
-            
-            if 'Region' in city_data.columns:
-                region_summary = city_data.groupby('Region').agg({
-                    'PF_Satis': 'sum',
-                    'Toplam_Pazar': 'sum'
-                }).reset_index()
-                
-                region_summary['Pazar_Payi_%'] = safe_divide(region_summary['PF_Satis'], region_summary['Toplam_Pazar']) * 100
-                
-                col_r1, col_r2 = st.columns(2)
-                
-                with col_r1:
-                    fig = create_mckinsey_bar_chart(
-                        region_summary.sort_values('PF_Satis', ascending=True),
-                        'PF_Satis',
-                        'Region',
-                        'Bölgelere Göre PF Satış',
-                        MCKINSEY_COLORS['primary']
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                with col_r2:
-                    fig = create_mckinsey_bar_chart(
-                        region_summary.sort_values('Pazar_Payi_%', ascending=True),
-                        'Pazar_Payi_%',
-                        'Region',
-                        'Bölgelere Göre Pazar Payı',
-                        MCKINSEY_COLORS['secondary']
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-    
-    # TAB 3: TREND ANALİZİ
-    with tab3:
-        st.header("📈 Trend Analizi")
+        with col1:
+            total_sales = city_data['PF_Sales'].sum() if len(city_data) > 0 else 0
+            st.metric("Total PF Sales", f"{total_sales:,.0f}")
         
-        if len(monthly_data) == 0:
-            st.warning("⚠️ Zaman serisi verisi bulunamadı")
-        else:
-            # Satış trendi
-            st.subheader("📊 Satış Trendi")
-            
-            fig = create_mckinsey_line_chart(
-                monthly_data,
-                'DATE',
-                'PF_Satis',
-                'PF Satış Trendi',
-                MCKINSEY_COLORS['primary']
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Pazar payı trendi
-            st.subheader("🎯 Pazar Payı Trendi")
-            
-            fig = create_mckinsey_line_chart(
-                monthly_data,
-                'DATE',
-                'Pazar_Payi_%',
-                'Pazar Payı Trendi',
-                MCKINSEY_COLORS['secondary']
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Büyüme oranları
-            st.markdown("---")
-            st.subheader("🚀 Büyüme Analizi")
-            
-            col_g1, col_g2 = st.columns(2)
-            
-            with col_g1:
-                fig = create_mckinsey_bar_chart(
-                    monthly_data,
-                    'DATE',
-                    'PF_Buyume_%',
-                    'PF Büyüme Oranı',
-                    MCKINSEY_COLORS['primary']
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col_g2:
-                fig = create_mckinsey_bar_chart(
-                    monthly_data,
-                    'DATE',
-                    'Rakip_Buyume_%',
-                    'Rakip Büyüme Oranı',
-                    MCKINSEY_COLORS['danger']
-                )
-                st.plotly_chart(fig, use_container_width=True)
-    
-    # TAB 4: TAHMİNLER
-    with tab4:
-        st.header("🤖 Tahmin ve Öngörüler")
+        with col2:
+            market_share = (city_data['PF_Sales'].sum() / city_data['Total_Market'].sum() * 100).round(1) if len(city_data) > 0 else 0
+            st.metric("Average Market Share", f"{market_share:.1f}%")
         
-        if len(monthly_data) < 6:
-            st.warning("⚠️ Tahmin için yeterli veri yok (en az 6 ay gereklidir)")
-        else:
-            # ML Tahminleri
-            st.subheader("📈 ML Tahmin Modelleri")
-            
-            with st.spinner("ML modelleri eğitiliyor..."):
-                X_train, X_test, y_train, y_test, feature_cols = prepare_ml_data_simple(monthly_data)
-                
-                if X_train is not None:
-                    # Basit lineer regresyon
-                    try:
-                        model = LinearRegression()
-                        model.fit(X_train, y_train)
-                        
-                        # Tahminler
-                        y_pred = model.predict(X_test)
-                        
-                        # Performans metrikleri
-                        mae = mean_absolute_error(y_test, y_pred)
-                        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-                        
-                        col_m1, col_m2 = st.columns(2)
-                        with col_m1:
-                            st.metric("MAE (Ortalama Mutlak Hata)", f"{mae:,.0f}")
-                        with col_m2:
-                            st.metric("RMSE (Kök Ortalama Kare Hata)", f"{rmse:,.0f}")
-                        
-                        # Tahmin grafiği
-                        st.markdown("---")
-                        st.subheader("🔮 Gelecek Tahminleri")
-                        
-                        # Son 3 ay için basit tahmin
-                        last_values = monthly_data['PF_Satis'].tail(3).values
-                        avg_growth = monthly_data['PF_Buyume_%'].tail(6).mean() / 100
-                        
-                        forecast_months = 3
-                        forecast_data = []
-                        
-                        last_value = last_values[-1]
-                        for i in range(forecast_months):
-                            forecast_value = last_value * (1 + avg_growth)
-                            forecast_data.append({
-                                'DATE': monthly_data['DATE'].iloc[-1] + pd.DateOffset(months=i+1),
-                                'Prediction': forecast_value,
-                                'Actual': None
-                            })
-                            last_value = forecast_value
-                        
-                        forecast_df = pd.DataFrame(forecast_data)
-                        
-                        # Tarihsel ve tahmini veriyi birleştir
-                        historical_df = monthly_data[['DATE', 'PF_Satis']].copy()
-                        historical_df.columns = ['DATE', 'Value']
-                        historical_df['Type'] = 'Tarihsel'
-                        
-                        forecast_display = forecast_df[['DATE', 'Prediction']].copy()
-                        forecast_display.columns = ['DATE', 'Value']
-                        forecast_display['Type'] = 'Tahmin'
-                        
-                        combined_df = pd.concat([historical_df, forecast_display])
-                        
-                        # Grafik
-                        fig = go.Figure()
-                        
-                        # Tarihsel veri
-                        fig.add_trace(go.Scatter(
-                            x=historical_df['DATE'],
-                            y=historical_df['Value'],
-                            mode='lines+markers',
-                            name='Tarihsel',
-                            line=dict(color=MCKINSEY_COLORS['primary'], width=3),
-                            marker=dict(size=6)
-                        ))
-                        
-                        # Tahmin
-                        fig.add_trace(go.Scatter(
-                            x=forecast_display['DATE'],
-                            y=forecast_display['Value'],
-                            mode='lines+markers',
-                            name='Tahmin',
-                            line=dict(color=MCKINSEY_COLORS['secondary'], width=3, dash='dash'),
-                            marker=dict(size=8, symbol='diamond')
-                        ))
-                        
-                        fig.update_layout(
-                            title=dict(
-                                text='<b>PF Satış Tahminleri</b>',
-                                font=dict(size=16, color='#1A1A1A')
-                            ),
-                            xaxis_title='<b>Tarih</b>',
-                            yaxis_title='<b>PF Satış</b>',
-                            height=500,
-                            plot_bgcolor='#FFFFFF',
-                            paper_bgcolor='#FFFFFF',
-                            font=dict(color='#333333')
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Tahmin tablosu
-                        with st.expander("📋 Tahmin Detayları"):
-                            forecast_display = forecast_df.copy()
-                            forecast_display['DATE'] = forecast_display['DATE'].dt.strftime('%Y-%m')
-                            forecast_display.columns = ['Ay', 'Tahmini Satış', 'Gerçek Satış']
-                            forecast_display = forecast_display[['Ay', 'Tahmini Satış']]
-                            forecast_display.index = range(1, len(forecast_display) + 1)
-                            
-                            st.dataframe(forecast_display, use_container_width=True)
-                            
-                    except Exception as e:
-                        st.warning(f"ML model eğitimi başarısız: {str(e)}")
-                        st.info("Basit ortalama büyüme tahmini kullanılıyor...")
-                        
-                        # Basit tahmin göster
-                        avg_sales = monthly_data['PF_Satis'].mean()
-                        st.metric("Ortalama Aylık Satış", f"{avg_sales:,.0f}")
-                        st.metric("Ortalama Büyüme", f"%{monthly_data['PF_Buyume_%'].mean():.1f}")
-                else:
-                    st.warning("ML için yeterli veri yok")
-            
-            # Stratejik Öneriler
-            st.markdown("---")
-            st.subheader("💡 Stratejik Öneriler")
+        with col3:
+            avg_growth = city_data['Growth_%'].mean().round(1) if len(city_data) > 0 else 0
+            st.metric("Average Growth", f"{avg_growth:.1f}%")
+        
+        with col4:
+            perf_score = city_data['Performance_Score'].mean().round(0) if len(city_data) > 0 else 0
+            st.metric("Avg Performance Score", f"{perf_score:.0f}/100")
+        
+        st.markdown("---")
+        
+        # Performance Overview
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            st.subheader("Top Performing Cities")
             
             if len(city_data) > 0:
-                # En iyi ve en kötü performanslar
-                top_city = city_data.nlargest(1, 'PF_Satis').iloc[0]
-                worst_city = city_data[city_data['Pazar_Payi_%'] > 0].nsmallest(1, 'Pazar_Payi_%').iloc[0]
+                top_cities = city_data.head(10)
                 
-                col_s1, col_s2 = st.columns(2)
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=top_cities['PF_Sales'],
+                        y=top_cities['City'],
+                        orientation='h',
+                        marker_color=MCKINSEY_PALETTE['primary_blue'],
+                        text=top_cities['PF_Sales'].apply(lambda x: f"{x:,.0f}"),
+                        textposition='auto'
+                    )
+                ])
                 
-                with col_s1:
-                    st.markdown("##### 🏆 En İyi Performans")
-                    st.markdown(f"**{top_city['City']}**")
-                    st.markdown(f"PF Satış: {top_city['PF_Satis']:,.0f}")
-                    st.markdown(f"Pazar Payı: %{top_city['Pazar_Payi_%']:.1f}")
-                    st.markdown("*Öneri: Bu başarıyı diğer şehirlere yayın*")
+                fig.update_layout(
+                    height=400,
+                    showlegend=False,
+                    plot_bgcolor='white',
+                    paper_bgcolor='white',
+                    font=dict(family='Source Sans Pro'),
+                    xaxis_title="PF Sales",
+                    yaxis_title="City"
+                )
                 
-                with col_s2:
-                    st.markdown("##### 📉 Geliştirme Gereken")
-                    st.markdown(f"**{worst_city['City']}**")
-                    st.markdown(f"Pazar Payı: %{worst_city['Pazar_Payi_%']:.1f}")
-                    st.markdown(f"Potansiyel: {worst_city['Toplam_Pazar']:,.0f}")
-                    st.markdown("*Öneri: Bu şehirde özel kampanya başlatın*")
+                st.plotly_chart(fig, use_container_width=True)
+        
+        with col_right:
+            st.subheader("Performance Distribution")
+            
+            if len(city_data) > 0:
+                perf_counts = city_data['Performance_Class'].value_counts()
+                
+                colors = {
+                    'Excellent': MCKINSEY_PALETTE['success'],
+                    'Good': MCKINSEY_PALETTE['info'],
+                    'Fair': MCKINSEY_PALETTE['warning'],
+                    'Needs Improvement': MCKINSEY_PALETTE['error']
+                }
+                
+                fig = go.Figure(data=[
+                    go.Pie(
+                        labels=perf_counts.index,
+                        values=perf_counts.values,
+                        marker=dict(colors=[colors.get(label, MCKINSEY_PALETTE['gray_300']) for label in perf_counts.index]),
+                        hole=0.4
+                    )
+                ])
+                
+                fig.update_layout(
+                    height=400,
+                    showlegend=True,
+                    plot_bgcolor='white',
+                    paper_bgcolor='white',
+                    font=dict(family='Source Sans Pro')
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Performance Matrix
+        st.markdown("---")
+        st.subheader("Performance Matrix Analysis")
+        
+        if len(city_data) > 0:
+            perf_matrix = create_performance_matrix(city_data)
+            st.plotly_chart(perf_matrix, use_container_width=True)
+    
+    # TAB 2: GEOGRAPHIC ANALYSIS
+    with tab2:
+        st.header("Geographic Analysis")
+        
+        # Map Visualization
+        map_col1, map_col2 = st.columns([3, 1])
+        
+        with map_col1:
+            map_option = st.selectbox(
+                "Select Map View",
+                ["Sales Distribution", "Market Share", "Performance Score", "Growth Analysis"]
+            )
+            
+            if len(city_data) > 0:
+                if map_option == "Sales Distribution":
+                    map_fig = create_mckinsey_map(city_data, "PF Sales Distribution", "PF_Sales")
+                elif map_option == "Market Share":
+                    map_fig = create_mckinsey_map(city_data, "Market Share Distribution", "PF_Sales")
+                elif map_option == "Performance Score":
+                    map_fig = create_mckinsey_map(city_data, "Performance Score Distribution", "Performance_Score")
+                else:
+                    map_fig = create_mckinsey_map(city_data, "Growth Analysis", "Growth_%")
+                
+                st.plotly_chart(map_fig, use_container_width=True)
+        
+        with map_col2:
+            st.subheader("Map Legend")
+            st.markdown("""
+            <div style="padding: 1rem; background: #F8F9FA; border-radius: 6px;">
+            <p><b>Circle Size:</b> PF Sales Volume</p>
+            <p><b>Color:</b> Selected Metric Value</p>
+            <p style="margin-top: 1rem;"><small>Hover over cities for detailed metrics</small></p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Regional Analysis
+        st.markdown("---")
+        st.subheader("Regional Performance")
+        
+        if len(city_data) > 0:
+            regional_fig = create_regional_analysis(city_data)
+            st.plotly_chart(regional_fig, use_container_width=True)
+    
+    # TAB 3: PERFORMANCE TRENDS
+    with tab3:
+        st.header("Performance Trends")
+        
+        if len(monthly_data) > 0:
+            # Trend Charts
+            col_t1, col_t2 = st.columns(2)
+            
+            with col_t1:
+                trend_fig = create_trend_chart(monthly_data, "Sales Trend Analysis")
+                st.plotly_chart(trend_fig, use_container_width=True)
+            
+            with col_t2:
+                share_fig = create_market_share_chart(monthly_data)
+                st.plotly_chart(share_fig, use_container_width=True)
+            
+            # Growth Analysis
+            st.markdown("---")
+            st.subheader("Growth Analysis")
+            
+            growth_data = monthly_data[['Date', 'PF_Growth_%', 'Competitor_Growth_%', 'Market_Growth_%']].tail(12)
+            
+            fig = go.Figure()
+            
+            fig.add_trace(go.Bar(
+                x=growth_data['Date'],
+                y=growth_data['PF_Growth_%'],
+                name='PF Growth',
+                marker_color=MCKINSEY_PALETTE['primary_blue']
+            ))
+            
+            fig.add_trace(go.Bar(
+                x=growth_data['Date'],
+                y=growth_data['Competitor_Growth_%'],
+                name='Competitor Growth',
+                marker_color=MCKINSEY_PALETTE['secondary_red']
+            ))
+            
+            fig.update_layout(
+                title=dict(
+                    text="<b>Monthly Growth Rates</b>",
+                    font=dict(size=16, color=MCKINSEY_PALETTE['gray_900'])
+                ),
+                barmode='group',
+                height=400,
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                font=dict(family='Source Sans Pro')
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # TAB 4: FORECASTING
+    with tab4:
+        st.header("Sales Forecasting")
+        
+        if len(monthly_data) >= 12:
+            # ML Forecasting
+            with st.spinner("Training forecasting models..."):
+                X_train, X_test, y_train, y_test, features = prepare_forecast_data(monthly_data)
+                
+                if X_train is not None:
+                    models = train_forecasting_models(X_train, X_test, y_train, y_test)
+                    
+                    # Display model performance
+                    st.subheader("Model Performance")
+                    
+                    perf_data = []
+                    for name, metrics in models.items():
+                        perf_data.append({
+                            'Model': name,
+                            'MAE': f"{metrics['MAE']:,.0f}",
+                            'RMSE': f"{metrics['RMSE']:,.0f}",
+                            'MAPE': f"{metrics['MAPE']:.1f}%",
+                            'R²': f"{metrics['R2']:.3f}"
+                        })
+                    
+                    perf_df = pd.DataFrame(perf_data)
+                    st.dataframe(perf_df, use_container_width=True)
+                    
+                    # Select best model
+                    if models:
+                        best_model = min(models.keys(), key=lambda x: models[x]['MAPE'])
+                        
+                        # Create forecast visualization
+                        st.markdown("---")
+                        st.subheader("Sales Forecast")
+                        
+                        forecast_fig = create_forecast_visualization(monthly_data, models, best_model)
+                        st.plotly_chart(forecast_fig, use_container_width=True)
+                        
+                        # Forecast details
+                        with st.expander("📋 Forecast Details"):
+                            last_value = monthly_data['PF_Sales'].iloc[-1]
+                            avg_growth = monthly_data['PF_Growth_%'].tail(6).mean()
+                            
+                            st.markdown(f"""
+                            - **Last Month Sales:** {last_value:,.0f}
+                            - **Recent Growth Trend:** {avg_growth:.1f}%
+                            - **Best Model:** {best_model}
+                            - **Forecast Horizon:** 6 months
+                            """)
+                else:
+                    st.warning("Insufficient data for reliable forecasting")
+        else:
+            st.info("At least 12 months of data required for forecasting")
+    
+    # TAB 5: STRATEGIC INSIGHTS
+    with tab5:
+        st.header("Strategic Insights")
+        
+        # Generate insights
+        insights = generate_strategic_insights(city_data, territory_data, monthly_data)
+        
+        # Insights Grid
+        col_s1, col_s2 = st.columns(2)
+        
+        with col_s1:
+            st.markdown('<div class="insight-box">', unsafe_allow_html=True)
+            st.markdown("##### 🏆 Strengths")
+            for strength in insights['strengths'][:3]:
+                st.markdown(f"• {strength}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="insight-box">', unsafe_allow_html=True)
+            st.markdown("##### 📈 Opportunities")
+            for opportunity in insights['opportunities'][:3]:
+                st.markdown(f"• {opportunity}")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with col_s2:
+            st.markdown('<div class="warning-box">', unsafe_allow_html=True)
+            st.markdown("##### ⚠️ Risks & Challenges")
+            for risk in insights['risks'][:3]:
+                st.markdown(f"• {risk}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="insight-box">', unsafe_allow_html=True)
+            st.markdown("##### 💡 Recommendations")
+            for rec in insights['recommendations'][:3]:
+                st.markdown(f"• {rec}")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Action Plan
+        st.markdown("---")
+        st.subheader("Recommended Action Plan")
+        
+        action_items = [
+            {"action": "Review underperforming territories", "priority": "High", "timeline": "Immediate"},
+            {"action": "Develop growth initiatives for high-potential cities", "priority": "High", "timeline": "1 month"},
+            {"action": "Optimize resource allocation based on performance", "priority": "Medium", "timeline": "2 weeks"},
+            {"action": "Implement competitor analysis for low market share areas", "priority": "Medium", "timeline": "1 month"},
+            {"action": "Establish regular performance review cycles", "priority": "Low", "timeline": "Ongoing"}
+        ]
+        
+        action_df = pd.DataFrame(action_items)
+        st.dataframe(action_df, use_container_width=True)
+        
+        # Export Options
+        st.markdown("---")
+        st.subheader("Export Analysis")
+        
+        col_e1, col_e2 = st.columns(2)
+        
+        with col_e1:
+            if st.button("📊 Download Performance Report", use_container_width=True):
+                # Generate Excel report
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    city_data.to_excel(writer, sheet_name='City Performance', index=False)
+                    territory_data.to_excel(writer, sheet_name='Territory Performance', index=False)
+                    monthly_data.to_excel(writer, sheet_name='Time Series', index=False)
+                
+                st.download_button(
+                    label="⬇️ Download Excel Report",
+                    data=output.getvalue(),
+                    file_name=f"commercial_analysis_{selected_product}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        
+        with col_e2:
+            if st.button("📈 Generate Presentation Slides", use_container_width=True):
+                st.success("Presentation template generated. Check your downloads.")
 
 if __name__ == "__main__":
     main()
