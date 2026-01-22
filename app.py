@@ -2,7 +2,7 @@
 Territory Bazlı Performans, ML Tahminleme, Türkiye Haritası ve Rekabet Analizi
 
 GELİŞTİRİLMİŞ ÖZELLİKLER:
-- 🗺️ Türkiye il bazlı harita görselleştirme (GELİŞTİRİLMİŞ VERSİYON)
+- 🗺️ Türkiye il bazlı harita görselleştirme (BÖLGE ve ŞEHİR görünümü)
 - 🤖 GERÇEK Machine Learning (Linear Regression, Ridge, Random Forest)
 - 📊 GELİŞMİŞ Zaman Serisi Analizi (3 aylık, 6 aylık ortalamalar, mevsimsellik analizi)
 - 📈 Gelişmiş rakip analizi ve trend karşılaştırması
@@ -522,8 +522,8 @@ CITY_NORMALIZE_CLEAN = {
     'VAN': 'Van',
     'YALOVA': 'Yalova',
     'YOZGAT': 'Yozgat',
-    'ZONGULDAK': 'Zonguldak',
-    'ZONGULDAK': 'Zonguldak',
+    'ZONGULDAK': 'Zonguldak",
+    'ZONGULDAK': 'Zonguldak",
     'ARDAHAN': 'Ardahan',
     'AKSARAY': 'Aksaray',
     'KIRIKKALE': 'Kirikkale'
@@ -966,12 +966,13 @@ def get_region_center(gdf_region):
     return centroid.x, centroid.y
 
 # =============================================================================
-# MODERN HARİTA OLUŞTURUCU - GELİŞTİRİLMİŞ
+# MODERN HARİTA OLUŞTURUCU - GELİŞTİRİLMİŞ (BÖLGE ve ŞEHİR GÖRÜNÜMÜ)
 # =============================================================================
 
 def create_modern_turkey_map(city_data, gdf, title="Türkiye Satış Haritası", view_mode="Bölge Görünümü", filtered_pf_toplam=None):
     """
     Modern Türkiye haritası - Mavi Kurumsal Tema
+    Bölge ve Şehir görünümü ile PF Adetleri ve Yüzdeleri
     """
     if gdf is None:
         st.error("❌ GeoJSON yüklenemedi")
@@ -1057,13 +1058,15 @@ def create_modern_turkey_map(city_data, gdf, title="Türkiye Satış Haritası",
                 region_data['name'],
                 region_data['Region'],
                 region_data['PF_Satis'],
-                region_data['Pazar_Payi_%']
+                region_data['Pazar_Payi_%'],
+                region_data['Toplam_Pazar']
             )),
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Bölge: %{customdata[1]}<br>"
-                "PF Satış: %{customdata[2]:,.0f}<br>"
-                "Pazar Payı: %{customdata[3]:.1f}%"
+                "PF Adet: %{customdata[2]:,.0f}<br>"
+                "Toplam Adet: %{customdata[4]:,.0f}<br>"
+                "PF Payı: %{customdata[3]:.1f}%<br>"
                 "<extra></extra>"
             ),
             name=region,
@@ -1088,68 +1091,60 @@ def create_modern_turkey_map(city_data, gdf, title="Türkiye Satış Haritası",
             showlegend=False
         ))
     
-    # KALICI ETİKETLER - FORMAT: "İSİM \n Adet (Pay %)"
+    # ETİKETLER - FORMAT: "BÖLGE\nAdet (Pay %)" veya "ŞEHİR\nAdet (Pay %)"
+    label_lons, label_lats, label_texts = [], [], []
+    
     if view_mode == "Bölge Görünümü":
-        label_lons, label_lats, label_texts = [], [], []
-        
         for region in merged['Region'].unique():
             region_data = merged[merged['Region'] == region]
-            total = region_data['PF_Satis'].sum()
+            total_pf = region_data['PF_Satis'].sum()
+            total_market = region_data['Toplam_Pazar'].sum()
             
-            if total > 0:
-                percent = (total / filtered_pf_toplam * 100) if filtered_pf_toplam > 0 else 0
+            if total_pf > 0:
+                percent = (total_pf / filtered_pf_toplam * 100) if filtered_pf_toplam > 0 else 0
+                market_percent = (total_pf / total_market * 100) if total_market > 0 else 0
                 
                 lon, lat = get_region_center(region_data)
                 label_lons.append(lon)
                 label_lats.append(lat)
                 label_texts.append(
-                    f"{region}<br>"
-                    f"{format_number(total)} ({percent:.1f}%)"
+                    f"<b>{region}</b><br>"
+                    f"PF: {format_number(total_pf)}<br>"
+                    f"Toplam: {format_number(total_market)}<br>"
+                    f"Pay: {market_percent:.1f}%"
                 )
-        
-        fig.add_trace(go.Scattermapbox(
-            lon=label_lons,
-            lat=label_lats,
-            mode='text',
-            text=label_texts,
-            textfont=dict(
-                size=11, 
-                color='white',
-                family='Inter, sans-serif',
-                weight='bold'
-            ),
-            hoverinfo='skip',
-            showlegend=False
-        ))
     
     else:  # "Şehir Görünümü"
-        city_lons, city_lats, city_texts = [], [], []
-        
         for idx, row in merged.iterrows():
             if row['PF_Satis'] > 0:
+                total_market = row['Toplam_Pazar'] if 'Toplam_Pazar' in row else (row['PF_Satis'] + row.get('Rakip_Satis', 0))
                 percent = (row['PF_Satis'] / filtered_pf_toplam * 100) if filtered_pf_toplam > 0 else 0
+                market_percent = (row['PF_Satis'] / total_market * 100) if total_market > 0 else 0
+                
                 centroid = row.geometry.centroid
-                city_lons.append(centroid.x)
-                city_lats.append(centroid.y)
-                city_texts.append(
-                    f"{row['name']}<br>"
-                    f"{format_number(row['PF_Satis'])} ({percent:.1f}%)"
+                label_lons.append(centroid.x)
+                label_lats.append(centroid.y)
+                label_texts.append(
+                    f"<b>{row['name']}</b><br>"
+                    f"PF: {format_number(row['PF_Satis'])}<br>"
+                    f"Toplam: {format_number(total_market)}<br>"
+                    f"Pay: {market_percent:.1f}%"
                 )
-        
-        fig.add_trace(go.Scattermapbox(
-            lon=city_lons,
-            lat=city_lats,
-            mode='text',
-            text=city_texts,
-            textfont=dict(
-                size=9, 
-                color='white',
-                family='Inter, sans-serif',
-                weight='bold'
-            ),
-            hoverinfo='skip',
-            showlegend=False
-        ))
+    
+    fig.add_trace(go.Scattermapbox(
+        lon=label_lons,
+        lat=label_lats,
+        mode='text',
+        text=label_texts,
+        textfont=dict(
+            size=10 if view_mode == "Şehir Görünümü" else 11,
+            color='white',
+            family='Inter, sans-serif',
+            weight='bold'
+        ),
+        hoverinfo='skip',
+        showlegend=False
+    ))
     
     # Modern layout ayarları
     fig.update_layout(
@@ -1163,7 +1158,11 @@ def create_modern_turkey_map(city_data, gdf, title="Türkiye Satış Haritası",
         height=750,
         margin=dict(l=0, r=0, t=80, b=0),
         title=dict(
-            text=f"<b>{title}</b>",
+            text=f"<b>{title}</b><br>"
+                 f"<span style='font-size:14px; color:#94a3b8'>"
+                 f"PF Toplam: {format_number(filtered_pf_toplam)} | "
+                 f"Toplam Pazar: {format_number(merged['Toplam_Pazar'].sum())} | "
+                 f"Ortalama Pay: {merged['Pazar_Payi_%'].mean():.1f}%</span>",
             x=0.5,
             font=dict(
                 size=24, 
@@ -1275,6 +1274,9 @@ def train_advanced_ml_models(df, forecast_periods=3):
     # Sadece mevcut kolonları kullan
     available_cols = [col for col in feature_cols if col in df_features.columns]
     
+    if len(available_cols) == 0:
+        return None, None, None
+    
     # Train/Test split (zaman bazlı - son %20 test)
     split_idx = int(len(df_features) * 0.8)
     
@@ -1365,22 +1367,28 @@ def train_advanced_ml_models(df, forecast_periods=3):
         
         # Lag feature'larını güncelle
         for lag in range(12, 0, -1):
-            if f'lag_{lag}' in new_row.columns:
-                if lag == 1:
-                    new_row[f'lag_{lag}'] = last_row['PF_Satis'].values[0]
-                else:
-                    new_row[f'lag_{lag}'] = last_row[f'lag_{lag-1}'].values[0]
+            lag_col = f'lag_{lag}'
+            prev_lag_col = f'lag_{lag-1}'
+            
+            if lag == 1:
+                if 'lag_1' in new_row.columns:
+                    new_row['lag_1'] = last_row['PF_Satis'].values[0]
+            else:
+                if lag_col in new_row.columns and prev_lag_col in last_row.columns:
+                    new_row[lag_col] = last_row[prev_lag_col].values[0]
         
         # Rolling statistics güncelle
         for window in [3, 6, 12]:
-            if f'rolling_mean_{window}' in new_row.columns:
+            rolling_mean_col = f'rolling_mean_{window}'
+            if rolling_mean_col in new_row.columns:
                 # Basitleştirilmiş güncelleme
                 recent_values = [last_row['PF_Satis'].values[0]]
                 if window > 1:
-                    for i in range(1, min(window, 13)):
-                        if f'lag_{i}' in last_row.columns:
-                            recent_values.append(last_row[f'lag_{i}'].values[0])
-                new_row[f'rolling_mean_{window}'] = np.mean(recent_values[:window])
+                    for lag in range(1, min(window, 13)):
+                        lag_col = f'lag_{lag}'
+                        if lag_col in last_row.columns:
+                            recent_values.append(last_row[lag_col].values[0])
+                new_row[rolling_mean_col] = np.mean(recent_values[:window])
         
         # Date features güncelle
         new_row['month'] = pd.to_datetime(next_date).month
@@ -2660,6 +2668,10 @@ def main():
                 key='map_region_filter'
             )
         
+        with col_map_filter2:
+            # Harita zoom seviyesi
+            zoom_level = st.slider("Harita Yakınlaştırma", 4, 9, 5, 1)
+        
         # Şehir performans verisini BÖLGEYE GÖRE FİLTRELE
         city_data = calculate_city_performance(df_filtered, selected_product, date_filter)
         if selected_map_region != "TÜMÜ":
@@ -2677,17 +2689,18 @@ def main():
         avg_share = city_data['Pazar_Payi_%'].mean()
         active_cities = len(city_data[city_data['PF_Satis'] > 0])
         top_city = city_data.loc[city_data['PF_Satis'].idxmax(), 'City'] if len(city_data) > 0 else "Yok"
+        top_city_pf = city_data['PF_Satis'].max() if len(city_data) > 0 else 0
         
         with col1:
-            st.metric("💊 PF Satış", format_number(total_pf))
+            st.metric("💊 PF Toplam", format_number(total_pf))
         with col2:
-            st.metric("🏪 Toplam Pazar", format_number(total_market))
+            st.metric("🏪 Pazar Toplam", format_number(total_market))
         with col3:
             st.metric("📊 Ort. Pazar Payı", format_percentage(avg_share))
         with col4:
             st.metric("🏙️ Aktif Şehir", str(active_cities))
         with col5:
-            st.metric("🏆 Lider Şehir", top_city)
+            st.metric("🏆 Lider Şehir", top_city, f"{format_number(top_city_pf)} adet")
         
         st.markdown("---")
         
@@ -2704,6 +2717,16 @@ def main():
             )
             
             if turkey_map:
+                # Harita zoom ayarını güncelle
+                turkey_map.update_layout(
+                    mapbox=dict(
+                        center=dict(lat=39.0, lon=35.0),
+                        zoom=zoom_level,
+                        bearing=0,
+                        pitch=0
+                    )
+                )
+                
                 st.plotly_chart(turkey_map, use_container_width=True)
             else:
                 st.error("❌ Harita oluşturulamadı")
@@ -2728,7 +2751,7 @@ def main():
                 title='<b>En Yüksek Satış Yapan Şehirler</b>',
                 color='Region',
                 color_discrete_map=REGION_COLORS,
-                hover_data=['Region', 'PF_Satis', 'Pazar_Payi_%'],
+                hover_data=['Region', 'PF_Satis', 'Pazar_Payi_%', 'Toplam_Pazar'],
                 text=bar_texts
             )
             
@@ -2738,7 +2761,7 @@ def main():
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#e2e8f0'),
-                yaxis_title='<b>PF Satış</b>',
+                yaxis_title='<b>PF Satış (Adet)</b>',
                 xaxis_title='<b>Şehir</b>',
                 yaxis=dict(
                     tickformat=',.0f'
@@ -2834,13 +2857,13 @@ def main():
             
             display_cols = ['City', 'Region', 'PF_Satis', 'Toplam_Pazar', 'Pazar_Payi_%', 'Yatırım_Stratejisi']
             city_display_formatted = city_display[display_cols].copy()
-            city_display_formatted.columns = ['Şehir', 'Bölge', 'PF Satış', 'Toplam Pazar', 'Pazar Payı %', 'Strateji']
+            city_display_formatted.columns = ['Şehir', 'Bölge', 'PF Adet', 'Toplam Adet', 'Pazar Payı %', 'Strateji']
             city_display_formatted.index = range(1, len(city_display_formatted) + 1)
             
             styled_cities = style_dataframe(
                 city_display_formatted,
                 color_column='Pazar Payı %',
-                gradient_columns=['PF Satış']
+                gradient_columns=['PF Adet', 'Toplam Adet']
             )
             
             st.dataframe(
@@ -2922,7 +2945,7 @@ def main():
                     font=dict(size=18, color='white')
                 ),
                 xaxis_title='<b>Territory</b>',
-                yaxis_title='<b>Satış</b>',
+                yaxis_title='<b>Satış (Adet)</b>',
                 barmode='group',
                 height=600,
                 xaxis=dict(tickangle=-45),
@@ -2970,7 +2993,7 @@ def main():
                 plot_bgcolor='rgba(15, 23, 41, 0.9)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#e2e8f0'),
-                xaxis_title='<b>PF Satış</b>',
+                xaxis_title='<b>PF Satış (Adet)</b>',
                 yaxis_title='<b>Pazar Payı %</b>',
                 legend=dict(
                     title='<b>Bölge</b>',
@@ -3580,4 +3603,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
