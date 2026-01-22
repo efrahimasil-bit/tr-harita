@@ -522,7 +522,7 @@ CITY_NORMALIZE_CLEAN = {
     'VAN': 'Van',
     'YALOVA': 'Yalova',
     'YOZGAT': 'Yozgat',
-    'ZONGULDAK': 'Zonguldak",
+    'ZONGULDAK': 'Zonguldak',
     'ZONGULDAK': 'Zonguldak',
     'ARDAHAN': 'Ardahan',
     'AKSARAY': 'Aksaray',
@@ -3603,4 +3603,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
